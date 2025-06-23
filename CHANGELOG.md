@@ -11,3 +11,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented MKM, SMK, and OSMK models
 - Added support for amorphous track structure models
 - Integrated setuptools-scm for versioning
+## [0.0.0] - 2025-06-23
+- Release 0.0.0
