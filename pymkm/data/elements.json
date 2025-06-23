@@ -1,0 +1,72 @@
+{
+  "Hydrogen": {
+    "symbol": "H",
+    "mass_number": 1,
+    "atomic_number": 1,
+    "atomic_mass": 1.0078250322,
+    "color": "#1f77b4"
+  },
+  "Helium": {
+    "symbol": "He",
+    "mass_number": 4,
+    "atomic_number": 2,
+    "atomic_mass": 4.0026032545,
+    "color": "#ff7f0e"
+  },
+  "Lithium": {
+    "symbol": "Li",
+    "mass_number": 7,
+    "atomic_number": 3,
+    "atomic_mass": 7.01600344,
+    "color": "#2ca02c"
+  },
+  "Beryllium": {
+    "symbol": "Be",
+    "mass_number": 9,
+    "atomic_number": 4,
+    "atomic_mass": 9.0121831,
+    "color": "#d62728"
+  },
+  "Boron": {
+    "symbol": "B",
+    "mass_number": 10,
+    "atomic_number": 5,
+    "atomic_mass": 10.0129369,
+    "color": "#9467bd"
+  },
+  "Carbon": {
+    "symbol": "C",
+    "mass_number": 12,
+    "atomic_number": 6,
+    "atomic_mass": 12.0,
+    "color": "#8c564b"
+  },
+  "Nitrogen": {
+    "symbol": "N",
+    "mass_number": 14,
+    "atomic_number": 7,
+    "atomic_mass": 14.003074004,
+    "color": "#e377c2"
+  },
+  "Oxygen": {
+    "symbol": "O",
+    "mass_number": 16,
+    "atomic_number": 8,
+    "atomic_mass": 15.994914619,
+    "color": "#7f7f7f"
+  },
+  "Fluorine": {
+    "symbol": "F",
+    "mass_number": 19,
+    "atomic_number": 9,
+    "atomic_mass": 18.998403162,
+    "color": "#bcbd22"
+  },
+  "Neon": {
+    "symbol": "Ne",
+    "mass_number": 20,
+    "atomic_number": 10,
+    "atomic_mass": 19.99244018,
+    "color": "#17becf"
+  }
+}

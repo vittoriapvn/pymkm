@@ -1,0 +1,28 @@
+Reference: Inaniwa et al. (2018)
+DOI: 10.1088/1361-6560/aabede
+Model_Name: Kiefer-Chatterjee
+Core_Radius_Type: energy-dependent
+Cell_Type: V79
+Atomic_Number: 10
+Domain_Radius_um: 0.24
+Nucleus_Radius_um: 3.6
+Alpha0_Gy-1: 0.136
+Beta0_Gy-2: 0.0200
+LET_MeV_cm: 5280
+z0_Gy: 105.8
+Data_Units: Dose [Gy], Survival fraction
+Data:
+2.282E-01  8.470E-01
+1.071E+00  4.767E-01
+1.914E+00  2.682E-01
+2.722E+00  1.472E-01
+3.494E+00  7.971E-02
+4.249E+00  4.051E-02
+4.986E+00  2.167E-02
+5.688E+00  1.174E-02
+6.390E+00  6.042E-03
+6.969E+00  3.315E-03
+7.619E+00  1.751E-03
+8.215E+00  9.607E-04
+8.794E+00  4.946E-04
+9.373E+00  2.612E-04

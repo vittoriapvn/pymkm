@@ -1,0 +1,38 @@
+Reference: Inaniwa et al. (2018)
+DOI: 10.1088/1361-6560/aabede
+Model_Name: Kiefer-Chatterjee
+Model_Version: stochastic
+Core_Radius_Type: energy-dependent
+Atomic_Number: 8
+Domain_Radius_um: 0.28
+Nucleus_Radius_um: 8.1
+z0_Gy: 66.0
+Data_Units: Energy [MeV/u], Dose-mean specific energy [Gy]
+Data:
+2.183E-01  8.866E-01
+2.762E-01  9.042E-01
+3.448E-01  9.179E-01
+4.247E-01  9.217E-01
+5.195E-01  9.136E-01
+6.614E-01  8.898E-01
+7.981E-01  8.620E-01
+9.826E-01  8.283E-01
+1.201E+00  7.788E-01
+1.489E+00  7.312E-01
+1.761E+00  6.877E-01
+2.110E+00  6.382E-01
+2.511E+00  5.828E-01
+3.133E+00  5.174E-01
+3.935E+00  4.482E-01
+5.008E+00  3.789E-01
+6.083E+00  3.274E-01
+7.691E+00  2.680E-01
+1.013E+01  2.125E-01
+1.255E+01  1.768E-01
+1.598E+01  1.431E-01
+2.021E+01  1.153E-01
+2.752E+01  8.544E-02
+3.648E+01  6.352E-02
+5.682E+01  4.149E-02
+9.153E+01  2.536E-02
+1.272E+02  1.526E-02

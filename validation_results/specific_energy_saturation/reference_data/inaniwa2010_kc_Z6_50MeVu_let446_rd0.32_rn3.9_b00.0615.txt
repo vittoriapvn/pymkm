@@ -1,0 +1,27 @@
+Reference: Inaniwa et al. (2010)
+DOI: 10.1088/0031-9155/55/22/008
+Model_Name: Kiefer-Chatterjee
+Core_Radius_Type: energy-dependent
+Energy_MeV_u: 50.0
+Atomic_Number: 6
+LET_MeV_cm: 446.5
+Domain_Radius_um: 0.32
+Nucleus_Radius_um: 3.9
+Beta0_Gy-2: 0.0615
+Saturation_Model: quadratic
+Data_Units: Impact parameter [µm], Sat.-corr. specific energy [Gy]
+Data:
+1.1737E-03  1.8372E+01
+5.2224E-03  1.7242E+01
+2.9151E-02  1.7685E+01
+2.2070E-01  1.7592E+01
+3.0646E-01  1.6561E+01
+3.2112E-01  7.4075E+00
+3.2610E-01  1.8813E+00
+3.4709E-01  7.6952E-01
+4.1540E-01  3.8763E-01
+6.5351E-01  1.2858E-01
+1.8473E-00  1.3324E-02
+1.2334E+01  2.9262E-04
+4.7656E+01  1.9379E-05
+4.8002E+01  7.3121E-07

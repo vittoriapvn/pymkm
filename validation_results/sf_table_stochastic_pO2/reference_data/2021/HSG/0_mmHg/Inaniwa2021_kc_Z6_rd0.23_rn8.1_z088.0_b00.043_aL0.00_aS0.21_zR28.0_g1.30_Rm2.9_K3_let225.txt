@@ -1,0 +1,39 @@
+Reference: Inaniwa et al. (2021)
+DOI: 10.1088/1361-6560/ac29cc
+Model_Name: Kiefer-Chatterjee
+Core_Radius_Type: energy-dependent
+Cell_Type: HSG
+Nucleus_Radius_um: 8.1
+K_mmHg: 3.0
+z0_Gy: 88.0
+AlphaL_Gy-1: 0.00
+AlphaS_Gy-1: 0.21
+Beta0_Gy-2: 0.043
+Domain_Radius_um: 0.23
+zR_Gy: 28.0
+gamma: 1.30
+Rm: 2.9
+pO2_mmHg: 0.0
+Atomic_Number: 6
+LET_MeV_cm: 225
+Data_Units: Dose [Gy], Survival fraction
+Data:
+ 4.558E-01  9.263E-01
+ 9.530E-01  8.581E-01
+ 1.575E+00  7.578E-01
+ 2.300E+00  6.692E-01
+ 3.108E+00  5.633E-01
+ 3.833E+00  4.788E-01
+ 4.620E+00  3.954E-01
+ 5.470E+00  3.297E-01
+ 6.215E+00  2.697E-01
+ 6.961E+00  2.249E-01
+ 7.769E+00  1.788E-01
+ 8.474E+00  1.435E-01
+ 9.344E+00  1.141E-01
+ 1.003E+01  9.241E-02
+ 1.071E+01  7.346E-02
+ 1.148E+01  5.784E-02
+ 1.241E+01  4.178E-02
+ 1.320E+01  3.136E-02
+ 1.423E+01  2.180E-02

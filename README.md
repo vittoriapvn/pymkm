@@ -1,0 +1,90 @@
+# pyMKM
+
+`pyMKM` is an open-source Python package for computing microdosimetric quantities using MKM, SMK, and OSMK models.  
+It is designed for use in radiobiology research and clinical applications in hadrontherapy.
+
+---
+
+## 📦 Features
+
+- Dose and LET-based microdosimetric modeling
+- MKM, SMK, and OSMK formulations
+- Support for amorphous track structure models (Kiefer-Chatterjee, Scholz-Kraft)
+- Automatic table generation for survival calculation
+- Full test coverage with `pytest`
+
+---
+
+## 📥 Installation
+
+From PyPI:
+
+```bash
+pip install pymkm
+```
+
+From source:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/pymkm.git
+cd pymkm
+pip install -e .[dev]
+```
+
+---
+
+## 🧪 Testing
+
+To run tests and measure code coverage:
+
+```bash
+run_tests.bat
+```
+
+You can also use:
+
+```bash
+pytest --cov=pymkm
+```
+
+---
+
+## 📂 Project structure
+
+```text
+pymkm/                  # Main package
+  ├── biology/          # Oxygen effects and biological corrections
+  ├── data/             # Stopping power and ion tables
+  ├── io/               # Data registry and file loading
+  ├── mktable/          # MKM and SMK table generation
+  ├── physics/          # Particle tracks and specific energy
+  ├── sftable/          # Survival fraction calculations
+  ├── utils/            # Geometry tools, interpolation, parallelism
+tests/                  # Full test suite (not installed)
+examples/               # Usage examples (not installed)
+validation_results/     # Model benchmarks (not installed)
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## 📝 Citation
+
+If you use this software in your research, please cite:
+
+> Magro G., Pavanello V., Mairani A.  
+> *pyMKM: An Open-Source Python Package for Microdosimetric Kinetic Model Calculation in Research and Clinical Applications*  
+> Computation 2025. (submitted)
+
+---
+
+## 🌐 Links
+
+- 📘 Documentation: *(coming soon)*
+- 🧪 Test results: via GitHub Actions
+- 💬 Issues: [GitHub Issues](https://github.com/YOUR_USERNAME/pymkm/issues)

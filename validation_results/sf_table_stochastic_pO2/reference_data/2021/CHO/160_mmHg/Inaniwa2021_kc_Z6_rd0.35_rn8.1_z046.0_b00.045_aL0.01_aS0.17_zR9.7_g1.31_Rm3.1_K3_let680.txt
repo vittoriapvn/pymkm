@@ -1,0 +1,33 @@
+Reference: Inaniwa et al. (2021)
+DOI: 10.1088/1361-6560/ac29cc
+Model_Name: Kiefer-Chatterjee
+Core_Radius_Type: energy-dependent
+Cell_Type: CHO
+Nucleus_Radius_um: 8.1
+K_mmHg: 3.0
+z0_Gy: 46.0
+AlphaL_Gy-1: 0.01
+AlphaS_Gy-1: 0.17
+Beta0_Gy-2: 0.045
+Domain_Radius_um: 0.35
+zR_Gy: 9.7
+gamma: 1.31
+Rm: 3.1
+pO2_mmHg: 160.0
+Atomic_Number: 6
+LET_MeV_cm: 680
+Data_Units: Dose [Gy], Survival fraction
+Data:
+ 1.683E-01  8.996E-01
+ 3.844E-01  7.281E-01
+ 7.447E-01  5.201E-01
+ 1.153E+00  3.473E-01
+ 1.537E+00  2.434E-01
+ 1.969E+00  1.564E-01
+ 2.401E+00  9.672E-02
+ 2.834E+00  6.216E-02
+ 3.338E+00  3.525E-02
+ 3.818E+00  2.078E-02
+ 4.370E+00  1.060E-02
+ 4.897E+00  5.410E-03
+ 5.425E+00  2.814E-03
