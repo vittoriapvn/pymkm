@@ -26,7 +26,7 @@ pip install pymkm
 From source:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pymkm.git
+git clone https://github.com/BeppMagro/pymkm.git
 cd pymkm
 pip install -e .[dev]
 ```
@@ -39,12 +39,6 @@ To run tests and measure code coverage:
 
 ```bash
 run_tests.bat
-```
-
-You can also use:
-
-```bash
-pytest --cov=pymkm
 ```
 
 ---
@@ -73,13 +67,20 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-## 📝 Citation
+## 📖 Citation
 
 If you use this software in your research, please cite:
 
 > Magro G., Pavanello V., Mairani A.  
-> *pyMKM: An Open-Source Python Package for Microdosimetric Kinetic Model Calculation in Research and Clinical Applications*  
-> Computation 2025. (submitted)
+> *pyMKM: Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy.*
+
+> GitHub repository: [pymkm](https://github.com/BeppeMagro/pymkm)
+
+---
+
+## 💰 Funding
+
+This work was funded by the National Plan for NRRP Complementary Investments (PNC) in the call for the funding of research initiatives for technologies and innovative trajectories in the health – project n. PNC0000003 – *AdvaNced Technologies for Human-centrEd Medicine* (project acronym: **ANTHEM** – Cascade Call launched by SPOKE 3 POLIMI: “PRECISION”).
 
 ---
 
