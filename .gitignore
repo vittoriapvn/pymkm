@@ -66,4 +66,5 @@ dmypy.json
 # Custom project files
 *.bat
 *.sh
+sync_dependencies_grep.py
 .spyproject/
