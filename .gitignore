@@ -63,8 +63,10 @@ dmypy.json
 # VS Code debugging
 .vscode/
 
-# Custom
+# Custom project files
 run_tests.bat
 build_and_verify.bat
 sync_dependencies_grep.py
 init_and_push_to_github_first_time.*
+git_cleanup_ignored_files.sh
+.spyproject/
