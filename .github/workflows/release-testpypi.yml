@@ -23,7 +23,7 @@ jobs:
         run: pip install build twine
 
       - name: Build the package
-        run: python -m build --no-isolation
+        run: python -m build
 
       - name: Upload to TestPyPI
         env:
