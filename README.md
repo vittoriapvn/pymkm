@@ -1,6 +1,7 @@
 # pyMKM
 
 [![CI](https://github.com/BeppeMagro/pymkm/actions/workflows/ci.yml/badge.svg)](https://github.com/BeppeMagro/pymkm/actions)
+[![TestPyPI](https://img.shields.io/badge/TestPyPI-pymkm-blue)](https://test.pypi.org/project/pymkm/)
 
 `pyMKM` is an open-source Python package for computing microdosimetric quantities using MKM, SMK, and OSMK models.  
 It is designed for use in radiobiology research and clinical applications in hadrontherapy.
