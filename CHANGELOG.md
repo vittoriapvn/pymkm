@@ -13,3 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated setuptools-scm for versioning
 ## [0.0.0] - 2025-06-23
 - Release 0.0.0
+
+## [0.0.1] - 2025-06-24
+- Start clean versioning
