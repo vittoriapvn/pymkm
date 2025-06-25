@@ -7,3 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.4] - 2025-06-25
 - fix: update MANIFEST.in and pyproject.toml
+
+## [0.0.5] - 2025-06-25
+- 0.0.5
