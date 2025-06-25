@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pymkm"
-version = "0.0.5"
+version = "0.0.6"
 description = "Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -35,14 +35,12 @@ Repository = "https://github.com/BeppeMagro/pymkm"
 Issues = "https://github.com/BeppeMagro/pymkm/issues"
 
 [tool.setuptools]
+packages = ["pymkm"]
 include-package-data = true
-
-[tool.setuptools_scm]
-version_scheme = "post-release"
-local_scheme = "node-and-date"
 
 [tool.setuptools.package-data]
 "pymkm.data" = [ "**/*.txt", "elements.json",]
 
-[tool.setuptools.packages.find]
-where = [ "pymkm",]
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-date"
