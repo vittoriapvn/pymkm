@@ -1,18 +1,25 @@
-include README.md
-include requirements.txt
-include pyproject.toml
 include LICENSE
+include README.md
+include pyproject.toml
+include requirements.txt
+include CHANGELOG.md
 include run_tests.bat
 
+# Include internal data
 recursive-include pymkm/data *.txt
 recursive-include pymkm/data *.json
 
-# Include only in the source distribution (not in the wheel or pip install)
+# Include only in source distribution (sdist)
 recursive-include examples *
 recursive-include validation_results *
 recursive-include tests *
 
-# Exclude development cache folders
-exclude .coverage
-exclude .pytest_cache/*
-exclude .spyproject/*
+# Prune dev/cache/build dirs
+prune .pytest_cache
+prune .spyproject
+prune dist
+
+# Exclude dev scripts and leftover files
+global-exclude *.sh
+global-exclude *.bat
+global-exclude sync_dependencies_grep.py
