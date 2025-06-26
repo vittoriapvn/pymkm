@@ -1,3 +1,17 @@
+"""
+Core classes for survival fraction (SF) table generation.
+
+This module defines:
+
+- :class:`SFTableParameters`: A dataclass storing all parameters required to compute
+  survival fraction curves using MKM, SMK, or OSMK models.
+- :class:`SFTable`: A computation manager that integrates MKTable results with
+  biological model parameters to produce survival fraction outputs.
+
+The module supports OSMK 2021 and OSMK 2023 models, including automatic validation
+of inputs and display utilities.
+"""
+
 from dataclasses import dataclass, field
 from typing import Optional
 import numpy as np
@@ -9,42 +23,50 @@ from pymkm.mktable.core import MKTable
 @dataclass
 class SFTableParameters:
     """
-    Configuration container for computing survival fraction (SF) curves
-    using the MKM, SMK, or oxygen-effect-incorporated SMK (OSMK) models.
+    Configuration container for computing survival fraction (SF) curves using MKM, SMK, or OSMK models.
 
-    Attributes
-    ----------
-    mktable : MKTable
-        Precomputed MKTable containing specific energy values.
-    alpha0 : float, optional
-        Total linear coefficient α_0 in the LQ model [Gy^-1]. Required unless both alphaL and alphaS are provided.
-    beta0 : float, optional
-        Quadratic coefficient β_0 in the LQ model [Gy^-2]. If not provided, taken from mktable.params.
-    dose_grid : np.ndarray, optional
-        Array of dose values [Gy] for which to compute survival fractions.
-        Defaults to np.arange(0, 15.5, 0.5).
+    :param mktable: Precomputed MKTable containing specific energy values.
+    :type mktable: pymkm.mktable.core.MKTable
 
-    OSMK-specific parameters (optional, only required if oxygen effect is enabled via pO2):
-    alphaL : float, optional
-        Linear coefficient for lethal lesions [Gy^-1].
-    alphaS : float, optional
-        Linear coefficient for sublethal lesions [Gy^-1].
-    zR : float, optional
-        Parameter for radiation quality dependence of oxygen effect [Gy]. (OSMK 2021 only)
-    gamma : float, optional
-        Exponent in R_max(zd) expression. (OSMK 2021 only)
-    Rm : float, optional
-        Minimum value of R_max. (OSMK 2021 only)
-    f_rd_max : float, optional
-        Maximum domain radius modification factor under hypoxia. (OSMK 2023 only)
-    f_z0_max : float, optional
-        Maximum saturation parameter modification factor under hypoxia. (OSMK 2023 only)
-    Rmax : float, optional
-        Maximum value of radioresistance R at pO2 = 0. (OSMK 2023 only)
-    K : float, default=3.0
-        Partial pressure [mmHg] at which R(pO2) = (1 + R_max)/2. Default from Inaniwa 2021.
-    pO2 : float, optional
-        Partial oxygen pressure [mmHg] at which to apply the oxygen effect. Enables OSMK mode if set.
+    :param alpha0: Total linear coefficient α₀ in the LQ model [Gy⁻¹]. Required unless both `alphaL` and `alphaS` are provided.
+    :type alpha0: float, optional
+
+    :param beta0: Quadratic coefficient β₀ in the LQ model [Gy⁻²]. If not provided, it is retrieved from `mktable.parameters`.
+    :type beta0: float, optional
+
+    :param dose_grid: Dose grid [Gy] over which to compute survival fractions. Defaults to np.arange(0, 15.5, 0.5).
+    :type dose_grid: np.ndarray, optional
+
+    :param alphaL: Linear coefficient for lethal lesions [Gy⁻¹] (OSMK 2021/2023).
+    :type alphaL: float, optional
+
+    :param alphaS: Linear coefficient for sublethal lesions [Gy⁻¹] (OSMK 2021/2023).
+    :type alphaS: float, optional
+
+    :param zR: Radiation quality–dependent oxygen parameter [Gy] (OSMK 2021 only).
+    :type zR: float, optional
+
+    :param gamma: Exponent for R_max(zd) expression (OSMK 2021 only).
+    :type gamma: float, optional
+
+    :param Rm: Minimum value of R_max (OSMK 2021 only).
+    :type Rm: float, optional
+
+    :param f_rd_max: Maximum domain radius scaling factor under hypoxia (OSMK 2023 only).
+    :type f_rd_max: float, optional
+
+    :param f_z0_max: Maximum saturation parameter scaling factor under hypoxia (OSMK 2023 only).
+    :type f_z0_max: float, optional
+
+    :param Rmax: Maximum radioresistance at pO₂ = 0 mmHg (OSMK 2023 only).
+    :type Rmax: float, optional
+
+    :param K: Oxygen pressure [mmHg] at which R(pO₂) = (1 + Rmax)/2. Default is 3.0 (Inaniwa 2021).
+    :type K: float, optional
+
+    :param pO2: Oxygen partial pressure [mmHg] at which to evaluate the oxygen effect.
+        Enables OSMK mode if set.
+    :type pO2: float, optional
     """
 
     mktable: MKTable
@@ -65,6 +87,17 @@ class SFTableParameters:
     pO2: Optional[float] = None  # mmHg
 
     def __post_init__(self):
+        """
+        Validate parameter consistency and derive missing values if necessary.
+        
+        - Ensures `mktable` is an instance of MKTable.
+        - Checks and fills in missing `beta0` from the MKTable.
+        - Enforces consistency between `alpha0`, `alphaL`, and `alphaS` when pO2 is set.
+        - Prevents mixing of OSMK 2021 and OSMK 2023 parameter sets.
+        
+        :raises TypeError: If `mktable` is not a MKTable instance.
+        :raises ValueError: If required parameters are missing or inconsistent.
+        """
         if not isinstance(self.mktable, MKTable):
             raise TypeError("mktable must be an instance of MKTable")
 
@@ -112,22 +145,17 @@ class SFTableParameters:
     @classmethod
     def from_dict(cls, config: dict) -> "SFTableParameters":
         """
-        Create an SFTableParameters instance from a dictionary, warning on unrecognized keys.
-
-        Parameters
-        ----------
-        config : dict
-            Dictionary of parameters with keys matching the field names.
-
-        Returns
-        -------
-        SFTableParameters
-            A populated dataclass instance.
-
-        Raises
-        ------
-        ValueError
-            If unknown keys are found in the config.
+        Create an SFTableParameters instance from a dictionary.
+    
+        Unrecognized keys in the dictionary will trigger a warning.
+    
+        :param config: Dictionary of parameters with keys matching the dataclass fields.
+        :type config: dict
+    
+        :returns: A populated SFTableParameters instance.
+        :rtype: SFTableParameters
+    
+        :raises ValueError: If unknown keys are present in the configuration dictionary.
         """
         valid_keys = set(cls.__dataclass_fields__.keys())
         incoming_keys = set(config.keys())
@@ -144,12 +172,10 @@ class SFTableParameters:
 class SFTable:
     def __init__(self, parameters: SFTableParameters):
         """
-        Initialize SFTable from given parameters.
-
-        Parameters
-        ----------
-        parameters : SFTableParameters
-            A dataclass with MKTable, alpha0/beta0, and dose grid.
+        Initialize the SFTable with a set of biological and model parameters.
+        
+        :param parameters: An SFTableParameters instance containing model, geometry, and oxygen settings.
+        :type parameters: SFTableParameters
         """
         self.params = parameters
         self.table = None
@@ -163,6 +189,11 @@ class SFTable:
         return f"<SFTable | α_0 = {alpha0}, β_0 = {beta0}>"
 
     def summary(self):
+        """
+        Print a detailed summary of the current survival model configuration.
+        
+        Displays LQ parameters and OSMK-related settings if applicable.
+        """
         print("\nSFTable Configuration")
         table = [
             ("\u03b1_0 [Gy^-1]", f"{self.params.alpha0:.3f}" if self.params.alpha0 is not None else "None"),
@@ -186,17 +217,12 @@ class SFTable:
 
     def display(self, results: list):
         """
-        Displays the survival fraction results in a readable table format.
-    
-        Parameters
-        ----------
-        results : list of dict
-            Output of the `compute()` method, expected to contain 'params', 'calculation_info', and 'data'.
-    
-        Raises
-        ------
-        ValueError
-            If the results list is empty.
+        Display the computed survival fraction results in a tabular format.
+        
+        :param results: List of dictionaries with keys 'params', 'calculation_info', and 'data'.
+        :type results: list[dict]
+        
+        :raises ValueError: If no results are provided.
         """
         if not results:
             raise ValueError("No results to display. Please run 'compute()' first.")

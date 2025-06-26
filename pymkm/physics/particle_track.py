@@ -1,3 +1,18 @@
+"""
+Radial dose models for charged particle tracks.
+
+This module defines the :class:`ParticleTrack`, which implements two analytical models:
+
+- Scholz-Kraft model (Phys. Med. Biol., 1996)
+- Kiefer-Chatterjee model (Radiat. Environ. Biophys., 1988)
+
+Both models compute local dose as a function of radial distance from the ion trajectory,
+based on physical parameters such as energy, atomic number, LET, and core radius type.
+
+These dose profiles serve as the basis for computing specific energy deposition
+in MKM and SMK.
+"""
+
 import numpy as np
 import logging
 from typing import Optional, Union, Tuple
@@ -9,8 +24,11 @@ logger.setLevel(logging.WARNING)
 
 class ParticleTrack:
     """
-    ParticleTrack models the local dose distribution along a particle track
-    using either the 'Scholz-Kraft' or 'Kiefer-Chatterjee' model.
+    Model of radial dose deposition around a particle track.
+
+    Supports the Scholz-Kraft and Kiefer-Chatterjee analytical models
+    for describing the initial local dose as a function of radial distance
+    from the ion trajectory.
     """
 
     def __init__(self,
@@ -21,18 +39,22 @@ class ParticleTrack:
                  let: Optional[float] = None,
                  base_points: int = GeometryTools.generate_default_radii.__defaults__[1]) -> None:
         """
-        Initialize the ParticleTrack instance.
-
-        Parameters:
-          model_name (str): The model to use for dose calculation ('Scholz-Kraft' or 'Kiefer-Chatterjee').
-          core_radius_type (str): 'constant' or 'energy-dependent' (default is 'energy-dependent').
-          energy (Optional[float]): Kinetic energy in MeV/u. Required for energy-dependent calculations.
-          atomic_number (Optional[int]): Atomic number (Z) of the particle. Required for Kiefer-Chatterjee.
-          let (Optional[float]): Unrestricted LET in MeV/cm.
-          base_points (int): Base number of sampling points (N0) for generating default radii (default is 150).
-
-        Raises:
-          ValueError: if required parameters are missing or invalid.
+        Initialize a ParticleTrack instance.
+    
+        :param model_name: The dose model to use ('Scholz-Kraft' or 'Kiefer-Chatterjee').
+        :type model_name: str
+        :param core_radius_type: Core radius mode, either 'constant' or 'energy-dependent'.
+        :type core_radius_type: str
+        :param energy: Kinetic energy in MeV/u. Required for most calculations.
+        :type energy: float, optional
+        :param atomic_number: Atomic number (Z) of the ion. Required for the Kiefer-Chatterjee model.
+        :type atomic_number: int, optional
+        :param let: Unrestricted LET in MeV/cm.
+        :type let: float, optional
+        :param base_points: Base number of sampling points used to generate radius grid.
+        :type base_points: int
+    
+        :raises ValueError: If required inputs are missing or invalid.
         """
         if core_radius_type not in ['constant', 'energy-dependent']:
             raise ValueError("Invalid core_radius_type. Choose 'constant' or 'energy-dependent'.")
@@ -66,7 +88,13 @@ class ParticleTrack:
 
     def _convert_let(self, let_mev_per_cm: float) -> float:
         """
-        Convert LET from MeV/cm to g*Gy/μm.
+        Convert LET from MeV/cm to Gy·g/μm.
+    
+        :param let_mev_per_cm: LET value in MeV/cm.
+        :type let_mev_per_cm: float
+    
+        :returns: LET converted to Gy·g/μm.
+        :rtype: float
         """
         GEVGRA = 1.602176462e-7
         let_gev_per_um = let_mev_per_cm * 1e-7
@@ -74,7 +102,12 @@ class ParticleTrack:
 
     def _compute_velocity(self) -> float:
         """
-        Compute the particle's velocity (fraction of the speed of light) based on kinetic energy.
+        Compute the particle's velocity as a fraction of the speed of light.
+        
+        :returns: Normalized particle velocity (unitless).
+        :rtype: float
+        
+        :raises ValueError: If energy is not provided.
         """
         if self.energy is None:
             raise ValueError("Kinetic energy is required to compute velocity.")
@@ -84,6 +117,11 @@ class ParticleTrack:
     def _compute_core_radius(self) -> float:
         """
         Compute the core radius in micrometers.
+    
+        :returns: Core radius value.
+        :rtype: float
+    
+        :raises ValueError: If core_radius_type is invalid.
         """
         if self.core_radius_type == 'constant':
             return 1.0e-2
@@ -97,6 +135,11 @@ class ParticleTrack:
     def _compute_effective_atomic_number(self) -> float:
         """
         Compute the effective atomic number (Z_eff) using the Barkas expression.
+    
+        :returns: Effective atomic number.
+        :rtype: float
+    
+        :raises ValueError: If atomic number is not provided.
         """
         if self.atomic_number is None:
             raise ValueError("Atomic number is required to compute effective atomic number.")
@@ -105,20 +148,31 @@ class ParticleTrack:
 
     def _compute_Kp(self) -> float:
         """
-        Compute the auxiliary variable Kp.
+        Compute the auxiliary constant Kp used in the Kiefer-Chatterjee model.
+        
+        :returns: Kp value.
+        :rtype: float
         """
         Zeff = self._compute_effective_atomic_number()
         return 1.25e-4 * (Zeff / self.velocity) ** 2
 
     def _compute_lambda0(self) -> float:
         """
-        Compute the auxiliary variable lambda0.
+        Compute the auxiliary constant λ₀ (lambda0), used in both models.
+    
+        :returns: Lambda0 value.
+        :rtype: float
         """
         return 1 / (np.pi * self.rho)
 
     def _compute_penumbra_radius(self) -> float:
         """
-        Compute the penumbra radius (Rp) based on the model and energy.
+        Compute the penumbra radius (Rp) of the particle track.
+    
+        :returns: Penumbra radius.
+        :rtype: float
+    
+        :raises ValueError: If energy is not provided or model is invalid.
         """
         if self.energy is None:
             raise ValueError("Kinetic energy is required to compute penumbra radius.")
@@ -134,12 +188,14 @@ class ParticleTrack:
     def _kiefer_chatterjee_dose(self, radius: np.ndarray) -> np.ndarray:
         """
         Compute the local dose using the Kiefer-Chatterjee model.
-
-        Parameters:
-          radius (np.ndarray): Radii (in μm) at which to compute the dose.
-
-        Returns:
-          np.ndarray: Dose values corresponding to the provided radii.
+    
+        :param radius: Radii in micrometers at which to evaluate the dose.
+        :type radius: np.ndarray
+    
+        :returns: Dose values at each radius.
+        :rtype: np.ndarray
+    
+        :raises ValueError: If core_radius_type is not 'energy-dependent'.
         """
         if self.core_radius_type != 'energy-dependent':
             raise ValueError("Kiefer-Chatterjee model requires energy-dependent core radius.")
@@ -158,12 +214,12 @@ class ParticleTrack:
     def _scholz_kraft_dose(self, radius: np.ndarray) -> np.ndarray:
         """
         Compute the local dose using the Scholz-Kraft model.
-
-        Parameters:
-          radius (np.ndarray): Radii (in μm) at which to compute the dose.
-
-        Returns:
-          np.ndarray: Dose values corresponding to the provided radii.
+    
+        :param radius: Radii in micrometers at which to evaluate the dose.
+        :type radius: np.ndarray
+    
+        :returns: Dose values at each radius.
+        :rtype: np.ndarray
         """
         core_radius = self._compute_core_radius()
         lambda0 = self._compute_lambda0()
@@ -179,16 +235,16 @@ class ParticleTrack:
 
     def initial_local_dose(self, radius: Optional[Union[float, np.ndarray]] = None) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Compute the initial local dose as a function of radial distance.
-
-        Parameters:
-          radius (Optional[Union[float, np.ndarray]]): Radius (or array of radii) in micrometers.
-              If not provided, a default logarithmic grid is generated using GeometryTools.generate_default_radii,
-              using the user-controlled base_points value.
-
-        Returns:
-          Tuple[np.ndarray, np.ndarray]: A tuple (dose, radii), where 'dose' is the computed dose values (Gy)
-                                         and 'radii' is a column vector of radii (μm).
+        Compute the initial radial dose distribution.
+    
+        :param radius: Optional radius or array of radii in micrometers.
+            If None, a default grid is generated from energy and penumbra radius.
+        :type radius: float or np.ndarray, optional
+    
+        :returns: Tuple containing (dose, radius) arrays.
+        :rtype: tuple[np.ndarray, np.ndarray]
+    
+        :raises ValueError: If radius values are invalid or energy is missing when required.
         """
         if radius is None:
             if self.energy is None:

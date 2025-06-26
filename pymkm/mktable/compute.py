@@ -1,3 +1,13 @@
+"""
+Computation engine for MKTable.
+
+This module defines the logic to compute microdosimetric quantities
+(z̄*, z̄_d, z̄_n) for a set of ions based on the MKM or SMK model using energy–LET tables.
+
+It integrates track structure modeling, specific energy calculation,
+saturation correction, and optional oxygen-effect scaling (OSMK 2023).
+"""
+
 import numpy as np
 import pandas as pd
 from typing import Optional, List, Union
@@ -15,6 +25,13 @@ from pymkm.biology.oxygen_effect import compute_relative_radioresistance, comput
 from .core import MKTable
 
 def _run_energy_let_task(func, args):
+    """
+    Wrapper function for task execution in parallel pools.
+    
+    :param func: Callable to execute.
+    :param args: Arguments for the callable.
+    :returns: Result of func(*args).
+    """
     return func(*args)
 
 def _compute_for_energy_let_pair(
@@ -24,21 +41,19 @@ def _compute_for_energy_let_pair(
     atomic_number: int
 ) -> dict:
     """
-    Compute microdosimetric quantities for a single (energy, LET) pair of a given ion.
-    
-    This function builds the ParticleTrack, computes specific energy (z), saturation-corrected
-    z', and dose-averaged values like z̄*, optionally including stochastic z̄_nucleus
-    if SMK is enabled.
-    
-    Args:
-        params (dict): A flattened dictionary of MKTableParameters used for computation.
-        energy (float): Kinetic energy per nucleon (MeV/u).
-        let (float): Corresponding LET value (MeV/μm).
-        atomic_number (int): Atomic number Z of the ion.
-    
-    Returns:
-        dict: A dictionary with keys like 'z_bar_star_domain', and optionally
-              'z_bar_domain', 'z_bar_nucleus'.
+    Compute microdosimetric quantities for a single (energy, LET) pair.
+
+    :param params: Flattened MKTableParameters as a dictionary.
+    :type params: dict
+    :param energy: Kinetic energy per nucleon (MeV/u).
+    :type energy: float
+    :param let: LET value in MeV/μm.
+    :type let: float
+    :param atomic_number: Atomic number Z of the ion.
+    :type atomic_number: int
+
+    :returns: Dictionary of computed quantities (z̄*, optionally z̄_d, z̄_n).
+    :rtype: dict
     """
     track = ParticleTrack(
         model_name=params["model_name"],
@@ -100,21 +115,17 @@ def _compute_for_energy_let_pair(
 
 def _get_osmk2023_corrected_parameters(mktable: MKTable) -> tuple[float, float]:
     """
-    Compute oxygen-corrected domain_radius and z0 based on OSMK 2023 model.
-    Uses values from mktable.params.
+    Compute oxygen-effect–corrected domain radius and z₀ using the OSMK 2023 model.
 
-    Returns
-    -------
-    domain_radius_eff : float
-        Corrected domain radius [μm]
-    z0_eff : float
-        Corrected saturation parameter [Gy]
+    :param mktable: MKTable instance containing OSMK parameters.
+    :type mktable: MKTable
 
-    Raises
-    ------
-    ValueError
-        If any required parameter is missing
+    :returns: Tuple with (corrected_domain_radius, corrected_z0).
+    :rtype: tuple[float, float]
+
+    :raises ValueError: If required OSMK parameters are missing.
     """
+    
     p = mktable.params
 
     R = compute_relative_radioresistance(K=p.K, pO2=p.pO2, K_mult=1 / p.Rmax)
@@ -126,16 +137,19 @@ def _get_osmk2023_corrected_parameters(mktable: MKTable) -> tuple[float, float]:
 
 def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, integration_method: str = "trapz"):
     """
-    Compute all microdosimetric quantities for a given ion (one entry of the table set).
+    Compute all microdosimetric quantities for a given ion in the table set.
 
-    Args:
-        ion (str): Ion name, symbol or atomic number (e.g., "O", "Oxygen", 8).
-        parallel (bool): Whether to process energy-LET pairs in parallel.
+    :param ion: Ion identifier (e.g., "C", "Carbon", 6).
+    :type ion: str
+    :param parallel: Whether to use parallel processing.
+    :type parallel: bool
+    :param integration_method: Numerical integration method ('trapz', 'simps', or 'quad').
+    :type integration_method: str
 
-    Returns:
-        Tuple[str, List[dict]]: Ion name and list of computed microdosimetric entries,
-            each with energy, LET, z̄*, and optionally z̄_domain and z̄_nucleus.
-    """    
+    :returns: Tuple of ion name and list of computed data entries.
+    :rtype: tuple[str, list[dict]]
+    """
+    
     start_time = time.time()
     sp = self.sp_table_set.get(ion)
     energy_grid = sp.energy
@@ -207,33 +221,27 @@ def compute(
     integration_method: str = "trapz"
 ) -> None:
     """
-    Compute microdosimetric quantities for all specified ions and update the MKTable results.
+    Compute microdosimetric tables for the selected ions using MKM or SMK.
 
-    This function manages the full computation workflow:
-    - Optionally resamples energy grids
-    - Computes z0 if not explicitly provided
-    - Calls specific energy computations in parallel or serial mode
-    - Aggregates and stores computed dose-averaged quantities (z̄*, z̄_d, z̄_n) per ion
+    This method orchestrates all steps required to build dose-averaged quantities:
+    - Optional energy resampling
+    - z₀ estimation (if not provided)
+    - Specific energy calculation
+    - Saturation correction
+    - Table aggregation per ion
 
-    Parameters
-    ----------
-    ions : Optional[List[Union[str, int]]]
-        List of ions to compute (e.g., "C", 6, "Carbon"). If None, all ions from the table set are used.
-    energy : Optional[Union[float, List[float], np.ndarray]]
-        Custom energy grid to resample all ions. If None, default energy grids are used.
-    parallel : bool, default=True
-        If True, enables parallel computation using ProcessPoolExecutor.
-    integration_method : str, default="trapz"
-        Method for numerical integration. One of:
-        - 'trapz': Trapezoidal rule (numpy)
-        - 'simps': Simpson's rule (scipy)
-        - 'quad' : Adaptive quadrature with cubic interpolation (scipy)
+    :param ions: List of ion identifiers to compute. If None, all ions are used.
+    :type ions: list[str or int], optional
+    :param energy: Optional custom energy grid for resampling.
+    :type energy: float or list or np.ndarray, optional
+    :param parallel: Enable parallel computation using multiple processes.
+    :type parallel: bool
+    :param integration_method: Integration rule ('trapz', 'simps', or 'quad').
+    :type integration_method: str
 
-    Raises
-    ------
-    RuntimeError
-        If the MKTable is not properly initialized.
+    :raises RuntimeError: If MKTable is not properly initialized.
     """
+    
     if not self.sp_table_set or not self.params:
         raise RuntimeError("MKTable is not properly initialized.")
 

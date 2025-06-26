@@ -20,6 +20,7 @@ prune .spyproject
 prune dist
 
 # Exclude dev scripts and leftover files
+exclude build_and_verify.bat
 global-exclude *.sh
-global-exclude *.bat
 global-exclude sync_dependencies_grep.py
+global-exclude .gitignore

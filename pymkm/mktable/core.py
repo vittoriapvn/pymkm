@@ -1,3 +1,15 @@
+"""
+Core classes for configuring and managing MKM/SMK table generation.
+
+This module defines the configuration container :class:`MKTableParameters` and the
+main computation and I/O manager :class:`MKTable`. These classes allow users to
+construct microdosimetric tables using either the classic MKM or the stochastic SMK model,
+with optional OSMK 2023 oxygen corrections.
+
+Tables are computed per ion and can be saved, loaded, summarized, or exported to
+external formats compatible with clinical systems.
+"""
+
 from dataclasses import asdict
 from typing import Optional, Union, Literal
 from dataclasses import dataclass
@@ -13,26 +25,41 @@ from pymkm.utils.geometry_tools import GeometryTools
 
 @dataclass
 class MKTableParameters:
+    """
+    Configuration container for MKTable model and geometry parameters.
+    
+    This dataclass defines the physical, numerical, and model-specific parameters
+    needed to generate microdosimetric tables using MKM or SMK.
+    
+    :ivar domain_radius: Radius of the sensitive domain (μm).
+    :ivar nucleus_radius: Radius of the cell nucleus (μm).
+    :ivar z0: Saturation parameter z₀ (Gy). Required for SMK.
+    :ivar beta0: LQ model quadratic coefficient β₀ (Gy⁻²). Required for MKM.
+    :ivar model_name: Track structure model: 'Kiefer-Chatterjee' or 'Scholz-Kraft'.
+    :ivar core_radius_type: Core radius model: 'constant' or 'energy-dependent'.
+    :ivar base_points_b: Number of impact parameter sampling points.
+    :ivar base_points_r: Number of radial sampling points.
+    :ivar use_stochastic_model: If True, enables SMK computation.
+    :ivar pO2: Oxygen partial pressure (mmHg).
+    :ivar f_rd_max: Max scaling factor for domain radius under hypoxia.
+    :ivar f_z0_max: Max scaling factor for z₀ under hypoxia.
+    :ivar Rmax: Maximum radioresistance ratio at 0 mmHg pO2.
+    :ivar K: Half-effect oxygen pressure (mmHg).
+    :ivar apply_oxygen_effect: Enable OSMK 2023 correction if True.
+    """
 
     @classmethod
     def from_dict(cls, config: dict) -> "MKTableParameters":
         """
-        Create an MKTableParameters instance from a dictionary, warning on unrecognized keys.
-    
-        Parameters
-        ----------
-        config : dict
-            Dictionary of parameters with keys matching the field names.
-    
-        Returns
-        -------
-        MKTableParameters
-            A populated dataclass instance.
-    
-        Raises
-        ------
-        ValueError
-            If unknown keys are found in the config.
+        Create an MKTableParameters instance from a dictionary.
+        
+        :param config: Dictionary of configuration fields.
+        :type config: dict
+        
+        :returns: Populated MKTableParameters instance.
+        :rtype: MKTableParameters
+        
+        :raises ValueError: If unknown keys are present in the dictionary.
         """
         valid_keys = set(cls.__dataclass_fields__.keys())
         incoming_keys = set(config.keys())
@@ -45,48 +72,6 @@ class MKTableParameters:
     
         return cls(**config)
 
-    """
-    Configuration container for all MKTable model and geometry parameters.
-
-    This dataclass defines the input parameters required to configure
-    a microdosimetric table generation for MKM or SMK models, and optional oxygen-effect
-    correction parameters (OSMK 2023), which can be applied transiently during computation.
-
-    Parameters
-    ----------
-    domain_radius : float
-        Radius (in μm) of the sensitive domain where energy deposition is calculated.
-    nucleus_radius : float
-        Radius (in μm) of the cell nucleus.
-    z0 : Optional[float]
-        Saturation parameter (Gy). Typically used in SMK. If not provided,
-        it can be derived from beta0 in fallback scenarios.
-    beta0 : Optional[float]
-        Quadratic coefficient β₀ in the LQ model at low LET. Required in MKM,
-        and optionally used to derive z0 in SMK if z0 is not given.
-    model_name : str
-        The track structure model to use ('Kiefer-Chatterjee' or 'Scholz-Kraft').
-    core_radius_type : str
-        Core radius model ('constant' or 'energy-dependent').
-    base_points_b : int
-        (default: 150)
-        Number of impact parameter sampling points (used in z(b) calculations).
-    base_points_r : int
-        (default: 150)
-        Number of radial sampling points (used in dose integration).
-    use_stochastic_model : bool
-        Whether to compute stochastic (SMK) quantities. If False, classic MKM is used.
-    pO2 : Optional[float]
-        Partial pressure of oxygen [mmHg]. Enables the OSMK 2023 correction if set.
-    f_rd_max : Optional[float]
-        Maximum scaling factor for domain radius under full hypoxia (pO2 = 0).
-    f_z0_max : Optional[float]
-        Maximum scaling factor for z0 under full hypoxia (pO2 = 0).
-    Rmax : Optional[float]
-        Maximum radioresistance ratio at pO2 = 0.
-    K : float, default=3.0
-        Half-effect oxygen pressure [mmHg] where R(pO2) = (1 + Rmax)/2.
-    """
     domain_radius: float
     nucleus_radius: float
     z0: Optional[float] = None
@@ -110,36 +95,35 @@ class MKTableParameters:
 
 
 class MKTable:
+    """
+    Main handler for microdosimetric table generation using MKM or SMK.
+    
+    This class manages the physical model, geometry, table computation,
+    result storage, and export functionalities.
+    """
     def __repr__(self):
         return (f"<MKTable model={self.model_version}, r_d={self.params.domain_radius}, "
                 f"R_n={self.params.nucleus_radius}>")
 
     @property
     def model_version(self) -> str:
+        """
+        Get the active model version as a string label.
+        
+        :returns: 'stochastic' if SMK is enabled, otherwise 'classic' (MKM).
+        :rtype: str
+        """
         return "stochastic" if self.params.use_stochastic_model else "classic"
     
     def _default_filename(self, extension: str = ".pkl") -> Path:
         """
-        Generate a descriptive filename for the MKTable output based on the model configuration.
-
-        The filename includes:
-        - model type (mkm or smk)
-        - stopping power source (from sp_table_set)
-        - track structure model abbreviation (kc or sk)
-        - core radius type (const or ed)
-        - domain radius, nucleus radius, z0 and beta0 values
-
-        The file is saved in the appropriate subfolder of ~/.pyMKM based on extension.
-
-        Parameters
-        ----------
-        extension : str, default ".pkl"
-            File extension used to determine the output format and destination folder.
-
-        Returns
-        -------
-        Path
-            Full path where the output file should be saved.
+        Generate a default filename based on model and geometry settings.
+    
+        :param extension: File extension (e.g., '.pkl' or '.txt').
+        :type extension: str
+    
+        :returns: Path object pointing to default output location.
+        :rtype: Path
         """
         root = Path.home() / ".pyMKM" / extension.strip(".")
         root.mkdir(parents=True, exist_ok=True)
@@ -160,20 +144,12 @@ class MKTable:
     
     def save(self, filename: Optional[Union[str, Path]] = None):
         """
-        Save the computed MKTable results to a pickle file.
-        
-        If no filename is provided, a default name is generated based on model version,
-        geometry parameters, and stopping power source. The file is saved under ~/.pyMKM/pkl/.
-        
-        Parameters
-        ----------
-        filename : str or Path, optional
-            Destination path for the pickle file. If None, a default path is used.
-        
-        Raises
-        ------
-        ValueError
-            If no data is available in the table (i.e. compute() was not called).
+        Save the MKTable to a pickle file.
+    
+        :param filename: Optional output file path. If None, uses default name.
+        :type filename: str or Path, optional
+    
+        :raises ValueError: If no results have been computed.
         """
         if not self.table:
             raise ValueError("Cannot save: MKTable has not been computed yet. Run 'compute()' first.")
@@ -184,17 +160,12 @@ class MKTable:
         
     def load(self, filename: Union[str, Path]):
         """
-        Load previously saved MKTable results from a pickle file.
-        
-        Parameters
-        ----------
-        filename : str or Path
-            Full path to the .pkl file to be loaded.
-        
-        Raises
-        ------
-        FileNotFoundError
-            If the provided path does not exist.
+        Load MKTable data from a pickle file.
+    
+        :param filename: Path to the pickle file.
+        :type filename: str or Path
+    
+        :raises FileNotFoundError: If the file does not exist.
         """
         path = Path(filename)
         if not path.exists():
@@ -205,12 +176,10 @@ class MKTable:
 
     def summary(self, verbose: bool = False):
         """
-        Print a formatted summary of the current MKTable configuration using a table.
+        Print a tabulated summary of current MKTable configuration.
     
-        Parameters
-        ----------
-        verbose : bool, optional
-            If True, includes detailed technical settings. Default is False.
+        :param verbose: If True, includes technical and ion-specific settings.
+        :type verbose: bool, optional
         """
         param_dict = asdict(self.params)
     
@@ -246,39 +215,32 @@ class MKTable:
             print("\nNote: Sampling points refer to base values before internal refinement.")
 
 
-    """
-    MKTable handles the generation and management of microdosimetric tables used in
-    MKM and SMK radiobiological models.
-
-    The class stores ion-specific calculations for domain/nucleus geometry, stopping
-    power interpolation, and dose-averaged quantities based on the selected physical
-    model.
-
-    Parameters
-    ----------
-    parameters : MKTableParameters
-        A dataclass containing all geometric, numerical and model options.
-    sp_table_set : Optional[StoppingPowerTableSet]
-        If provided, uses the given set of stopping power tables. Otherwise, loads
-        the default source ("fluka_2020_0").
-
-    Attributes
-    ----------
-    params : MKTableParameters
-        Input configuration and geometry.
-    sp_table_set : StoppingPowerTableSet
-        Loaded tables of energy vs LET for each ion.
-    table : dict
-        Placeholder dictionary for storing results after computation.
-    """
-
     def __init__(self, parameters: MKTableParameters, sp_table_set: Optional[StoppingPowerTableSet] = None):
+        """
+        Initialize an MKTable object with configuration and stopping power tables.
+    
+        :param parameters: Model and geometry parameters.
+        :type parameters: MKTableParameters
+        :param sp_table_set: Optional preloaded stopping power table set.
+        :type sp_table_set: StoppingPowerTableSet, optional
+        """
         self.params = parameters
         self.sp_table_set = sp_table_set or StoppingPowerTableSet.from_default_source("fluka_2020_0")
         self.table = {}
         self._validate_parameters()
 
     def _validate_parameters(self):
+        """
+        Perform internal consistency checks on MKTableParameters.
+        
+        Validates:
+        - Presence of either z0 or beta0 depending on MKM/SMK usage
+        - Correct handling of z0 and beta0 interaction
+        - Presence of OSMK parameters if oxygen effect correction is enabled
+        
+        :raises ValueError: If critical parameters are missing or incompatible.
+        :raises Warning: If redundant or conflicting values are detected (e.g., both z0 and beta0).
+        """
         p = self.params
 
         # --- Base validation: MKM / SMK logic ---
@@ -311,9 +273,10 @@ class MKTable:
 
     def _refresh_parameters(self, original_params: Optional[MKTableParameters] = None) -> None:
         """
-        Refresh self.params by reassigning all its fields based on their current values.
+        Reassign all parameter fields and print differences from previous config.
     
-        If any field is changed compared to original_params, prints the changes and re-displays the summary.
+        :param original_params: Optional reference to compare against.
+        :type original_params: MKTableParameters, optional
         """
         updated_fields = {}
         current = self.params
@@ -337,22 +300,15 @@ class MKTable:
 
     def get_table(self, ion: Union[str, int]) -> pd.DataFrame:
         """
-        Retrieve the computed microdosimetric table for a specific ion.
-
-        Parameters
-        ----------
-        ion : str or int
-            The ion to retrieve. Can be atomic number (e.g., 6), symbol ('C'), or full name ('Carbon').
-
-        Returns
-        -------
-        pandas.DataFrame
-            The computed table with columns like 'energy', 'let', 'z_bar_star_domain', etc.
-
-        Raises
-        ------
-        ValueError
-            If no results are available or the ion is not found.
+        Retrieve computed table for a specific ion.
+    
+        :param ion: Ion identifier (name, symbol, or atomic number).
+        :type ion: str or int
+    
+        :returns: Microdosimetric table as a DataFrame.
+        :rtype: pandas.DataFrame
+    
+        :raises ValueError: If results are not available or ion is not found.
         """
         if not self.table:
             raise ValueError("No computed results found. Run 'compute()' first.")
@@ -366,21 +322,12 @@ class MKTable:
 
     def display(self, preview_rows: int = 5):
         """
-        Displays the calculated results for each ion stored in mk_table in a formatted output.
-        
-        The method first checks if there is any calculation data available. 
-        If data exists, it prints a summary of properties for each ion, 
-        followed by a preview of the first and last rows of the associated pandas DataFrame.
-        
-        Parameters
-        ----------
-        preview_rows : int, optional
-            Number of top and bottom rows to display from each ion’s results table (default is 5).
-        
-        Raises
-        ------
-        ValueError
-            If no calculation data is found, prompting the user to run 'compute()' first.
+        Display summaries and previews of all ion-specific results.
+    
+        :param preview_rows: Number of top/bottom rows to show per ion.
+        :type preview_rows: int, optional
+    
+        :raises ValueError: If no results are available.
         """
         if not self.table:
             raise ValueError("No computed results found. Please run 'compute()' first.")
@@ -415,37 +362,19 @@ class MKTable:
         max_atomic_number: int
     ):
         """
-        Export the computed MKTable to a .txt file compatible with external tools.
+        Export results to a .txt file compatible with external tools.
     
-        Parameters
-        ----------
-        params : dict
-            Dictionary containing required metadata fields.
-            For model="classic", must include:
-                - 'CellType': Name of the cell line or type
-                - 'Alpha_0': Linear coefficient alpha_0 [Gy^-1]
-                - Optional 'Beta': Quadratic coefficient beta0 [Gy^-2] (must match self.params.beta0 if both given)
+        :param params: Required metadata for export (model-dependent).
+        :type params: dict
+        :param filename: Optional path to output .txt file.
+        :type filename: str or Path, optional
+        :param model: Explicitly set export model: 'classic' or 'stochastic'.
+        :type model: Literal["classic", "stochastic"], optional
+        :param max_atomic_number: Maximum Z for ions to include.
+        :type max_atomic_number: int
     
-            For model="stochastic", must include:
-                - 'CellType': Name of the cell line or type
-                - 'Alpha_ref': Reference alpha [Gy^-1]
-                - 'Beta_ref': Reference beta [Gy^-2]
-                - Optional 'scale_factor': Defaults to 1.0 if not provided (with warning)
-                - 'Alpha0': Linear coefficient for SMK (same as Alpha_0)
-                - Optional 'Beta0': Quadratic coefficient for SMK (must match self.params.beta0 if both given)
-        filename : str or Path, optional
-            Destination file path. If None, a default name is generated.
-        model : {"classic", "stochastic"}, optional
-            Specifies which model version to export. If None, uses the current model.
-        max_atomic_number : int
-            Maximum atomic number (inclusive) up to which ions will be written.
-    
-        Raises
-        ------
-        ValueError
-            If the table is empty, required parameters are missing, or there is a mismatch in Beta.
-        KeyError
-            If unexpected parameters are passed.
+        :raises ValueError: If required params or results are missing.
+        :raises KeyError: If unexpected or missing keys are in `params`.
         """
         if not self.table:
             raise ValueError("Cannot write: MKTable has not been computed yet. Run 'compute()' first.")

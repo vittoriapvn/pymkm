@@ -76,7 +76,6 @@ If you use this software in your research, please cite:
 
 > Magro G., Pavanello V., Mairani A.  
 > *pyMKM: Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy.*
-
 > GitHub repository: [pymkm](https://github.com/BeppeMagro/pymkm)
 
 ---
@@ -91,4 +90,4 @@ This work was funded by the National Plan for NRRP Complementary Investments (PN
 
 - 📘 Documentation: *(coming soon)*
 - 🧪 Test results: via GitHub Actions
-- 💬 Issues: [GitHub Issues](https://github.com/YOUR_USERNAME/pymkm/issues)
+- 💬 Issues: [GitHub Issues](https://github.com/BeppeMagro/pymkm/issues)

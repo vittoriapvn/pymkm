@@ -1,5 +1,9 @@
-pymkm package
-=============
+pymkm
+=====
+
+.. automodule:: pymkm
+   :noindex:
+   :no-members:
 
 Subpackages
 -----------
@@ -15,10 +19,5 @@ Subpackages
    pymkm.sftable
    pymkm.utils
 
-Module contents
----------------
-
-.. automodule:: pymkm
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   
+   

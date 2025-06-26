@@ -9,7 +9,6 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'pyMKM'
 copyright = '2025, Giuseppe Magro et al'
 author = 'Giuseppe Magro et al'
-release = '0.0.3'
 
 # -- General configuration ---------------------------------------------------
 
@@ -18,7 +17,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
-#    'myst_parser',
+    'sphinx.ext.intersphinx',
 ]
 
 templates_path = ['_templates']
@@ -31,5 +30,9 @@ source_suffix = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = 'sphinx_rtd_theme'
+#html_theme = 'sphinx_rtd_theme'
+html_theme = 'furo'
 html_static_path = ['_static']
+html_theme_options = {
+    "navigation_with_keys": True,
+}

@@ -1,24 +1,39 @@
+"""
+Geometric utilities for modeling energy deposition in microdosimetry.
+
+This module provides helper functions to support radial dose integration
+and geometric modeling of ion tracks intersecting sensitive volumes.
+
+All methods assume cylindrical symmetry and operate in micrometer units.
+"""
+
 import numpy as np
 from typing import Optional
 
 class GeometryTools:
     """
     Collection of geometric helper methods for particle interaction modeling.
+
+    Includes utilities to compute sampling point densities, logarithmic radii distributions,
+    and intersection areas between circular regions.
     """
 
     @staticmethod
     def determine_sampling_points(energy: float, radius_max: float, base_points: int = 150) -> int:
         """
-        Determine the number of sampling points (N) for dose calculation 
-        based on the particle's energy and a specified maximum radius.
-
-        Parameters:
-          energy (float): The particle's kinetic energy in MeV/u.
-          radius_max (float): The maximum radius in micrometers.
-          base_points (int): The base number of sampling points (default is 150).
-
-        Returns:
-          int: The computed number of sampling points.
+        Determine the number of sampling points based on energy and target radius.
+    
+        The returned value scales with both energy and radius_max using a heuristic multiplier.
+    
+        :param energy: The particle's kinetic energy in MeV/u.
+        :type energy: float
+        :param radius_max: The maximum radius of interest in micrometers.
+        :type radius_max: float
+        :param base_points: Baseline number of sampling points (default is 150).
+        :type base_points: int
+    
+        :returns: Total number of sampling points to use.
+        :rtype: int
         """
         N0 = base_points
 
@@ -46,17 +61,24 @@ class GeometryTools:
     @staticmethod
     def generate_default_radii(energy: float, radius_max: float, radius_min: Optional[float] = 1e-3, base_points: int = 150) -> np.ndarray:
         """
-        Generate a default logarithmic scale of radii based on the particle's energy 
-        and maximum radius.
-
-        Parameters:
-          energy (float): The particle's kinetic energy in MeV/u.
-          radius_max (float): The maximum radius in micrometers.
-          radius_min (Optional[float]): The minimum radius in micrometers (default is 1e-3).
-          base_points (int): The base number of sampling points (default is 150).
-
-        Returns:
-          np.ndarray: An array of radii values computed on a logarithmic scale.
+        Generate a logarithmically spaced array of radii for dose integration.
+    
+        The number of points is adjusted dynamically based on energy and radius_max.
+        Requires both energy and radius_max to be specified.
+    
+        :param energy: The particle's kinetic energy in MeV/u.
+        :type energy: float
+        :param radius_max: The maximum radius in micrometers.
+        :type radius_max: float
+        :param radius_min: The minimum radius in micrometers (default is 1e-3 µm).
+        :type radius_min: float, optional
+        :param base_points: Baseline number of sampling points (default is 150).
+        :type base_points: int
+    
+        :returns: Radii sampled on a log scale between radius_min and radius_max.
+        :rtype: np.ndarray
+    
+        :raises ValueError: If `energy` or `radius_max` is not provided.
         """
         if energy is None or radius_max is None:
             raise ValueError("Both energy and maximum radius must be provided.")
@@ -67,16 +89,20 @@ class GeometryTools:
     @staticmethod
     def calculate_intersection_area(r1: np.ndarray, r2: float, d: float) -> np.ndarray:
         """
-        Calculate the area of intersection between circles where one set of circles has varying radii
-        and the other set has a constant radius with a fixed center-to-center distance.
-
-        Parameters:
-          r1 (np.ndarray): Array of radii for the first set of circles.
-          r2 (float): Radius of the second set of circles (constant).
-          d (float): Distance between the centers of the circles.
-
-        Returns:
-          np.ndarray: Array of intersection areas for each value in r1.
+        Calculate intersection areas between circles with variable radii and a fixed radius.
+    
+        For each radius in `r1`, the method computes the overlap area with a circle of radius `r2`,
+        located at a center-to-center distance `d`.
+    
+        :param r1: Array of radii for the first set of circles.
+        :type r1: np.ndarray
+        :param r2: Radius of the second (fixed) circle.
+        :type r2: float
+        :param d: Distance between centers of the two circles.
+        :type d: float
+    
+        :returns: Array of intersection areas for each radius in `r1`.
+        :rtype: np.ndarray
         """
         r1 = np.asarray(r1).flatten()
         intersection_area = np.zeros_like(r1)

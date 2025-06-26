@@ -1,3 +1,19 @@
+"""
+Representation of stopping power data for individual ions.
+
+This module defines the :class:`StoppingPowerTable`, which stores and validates
+LET vs. energy curves for a given ion in liquid water.
+
+Features include:
+
+- Parsing from text files or dictionaries
+- Interpolation and resampling
+- Plotting
+- Metadata handling (Z, A, source, ionization potential)
+
+This class serves as the core data structure for model computations.
+"""
+
 from pathlib import Path
 import numpy as np
 import re
@@ -9,7 +25,11 @@ from pymkm.utils.interpolation import Interpolator
 
 
 class StoppingPowerTable:
-    """A class for handling stopping power (LET) data for ions in liquid water."""
+    """
+    Class for representing and handling stopping power (LET) data for ions in liquid water.
+    
+    Provides utilities for data validation, plotting, serialization, and interpolation.
+    """
     
     REQUIRED_HEADER_KEYS = ["Ion", "AtomicNumber", "MassNumber", "SourceProgram", "IonizationPotential", "Target"]
     REQUIRED_DICT_KEYS = ["ion_symbol", "atomic_number", "mass_number", "source_program", "ionization_potential", "target"]
@@ -17,8 +37,12 @@ class StoppingPowerTable:
 
     @classmethod
     def get_lookup_table(cls) -> Dict[str, Dict[str, int]]:
-        """Returns the ion properties lookup table from JSON."""
-        # https://ciaaw.org/atomic-weights.htm
+        """
+        Retrieve the ion properties lookup table (https://ciaaw.org/atomic-weights.htm)
+        
+        :returns: A dictionary mapping element names to their properties (symbol, Z, A, color).
+        :rtype: dict[str, dict[str, int]]
+        """
         return load_lookup_table()
 
     def __init__(self, ion_input: Union[str, int], energy: np.ndarray, let: np.ndarray,
@@ -26,22 +50,23 @@ class StoppingPowerTable:
                  ionization_potential: Optional[float] = None):
         """
         Initialize a StoppingPowerTable for a given ion.
-
-        Parameters:
-          ion_input (Union[str, int]): The ion identifier, which can be one of the following:
-                                       - Full element name (e.g., "Carbon")
-                                       - Element symbol (e.g., "C")
-                                       - Atomic number (e.g., 6 or "6")
-          energy (np.ndarray): Array of energy values.
-          let (np.ndarray): Array of corresponding LET values.
-          mass_number (Optional[int]): Optional override for the element's mass number.
-          source_program (Optional[str]): The data source.
-          ionization_potential (Optional[float]): The ionization potential.
-
-        Raises:
-          TypeError: if ion_input is not a string.
-          ValueError: if the provided identifier is not recognized.
-        """       
+    
+        :param ion_input: Ion identifier (element name, symbol, or atomic number).
+        :type ion_input: str or int
+        :param energy: Array of energy values in MeV/u.
+        :type energy: np.ndarray
+        :param let: Corresponding LET values in MeV/cm.
+        :type let: np.ndarray
+        :param mass_number: Optional mass number override.
+        :type mass_number: int, optional
+        :param source_program: Optional name of the source that provided the data.
+        :type source_program: str, optional
+        :param ionization_potential: Optional ionization potential of the medium.
+        :type ionization_potential: float, optional
+    
+        :raises TypeError: If ion_input is not a valid type.
+        :raises ValueError: If ion cannot be resolved in the lookup table.
+        """
         lookup = self.get_lookup_table()
 
         # Try matching a full element name (e.g., "Carbon")
@@ -84,21 +109,39 @@ class StoppingPowerTable:
     @property
     def ion_name(self) -> str:
         """
-        Returns the ion symbol.
-        (Since the full name is already used as a master key, only the symbol is stored and exposed.)
-        """
+         Get the ion symbol (e.g., "C" for carbon).
+        
+         :returns: Ion symbol string.
+         :rtype: str
+         """
         return self.ion_symbol
 
     @property
     def energy_grid(self) -> np.ndarray:
+        """
+        Access the energy array (grid).
+        
+        :returns: Energy values.
+        :rtype: np.ndarray
+        """
         return self.energy
 
     @property
     def stopping_power(self) -> np.ndarray:
+        """
+        Access the LET (stopping power) array.
+        
+        :returns: LET values.
+        :rtype: np.ndarray
+        """
         return self.let
 
     def _validate(self):
-        """Run internal consistency checks."""
+        """
+        Perform internal consistency checks on the input data.
+        
+        :raises ValueError: If shapes mismatch, insufficient points, or non-monotonic energy.
+        """
         if self.energy.shape != self.let.shape:
             raise ValueError("Energy and LET arrays must have the same shape.")
         if len(self.energy) < 150 and self.source_program != 'mstar_3_12':
@@ -107,7 +150,12 @@ class StoppingPowerTable:
             raise ValueError("Energy values must be strictly increasing.")
 
     def to_dict(self) -> Dict:
-        """Serialize the table to a dictionary."""
+        """
+        Serialize the object to a dictionary.
+    
+        :returns: Dictionary containing ion metadata and LET table.
+        :rtype: dict
+        """
         return {
             "ion_symbol": self.ion_symbol,
             "mass_number": self.mass_number,
@@ -121,7 +169,17 @@ class StoppingPowerTable:
 
     @staticmethod
     def from_dict(data: Dict) -> "StoppingPowerTable":
-        """Create a StoppingPowerTable instance from a dictionary."""
+        """
+        Create a StoppingPowerTable instance from a dictionary.
+        
+        :param data: Dictionary containing all required fields.
+        :type data: dict
+        
+        :returns: StoppingPowerTable instance.
+        :rtype: StoppingPowerTable
+        
+        :raises ValueError: If required fields are missing.
+        """
         missing = [key for key in StoppingPowerTable.REQUIRED_DICT_KEYS if key not in data]
         if missing:
             raise ValueError(f"Missing required field(s) in dictionary: {', '.join(missing)}")
@@ -137,13 +195,14 @@ class StoppingPowerTable:
 
     def plot(self, label: Optional[str] = None, show: bool = True, new_figure: bool = True):
         """
-        Plot Stopping Power vs. Energy.
-
-        Parameters:
-          label: Optional label for the curve.
-          show: Whether to display the plot.
-          new_figure: If True, creates a new figure and sets a title with the ion symbol;
-                      if False, plots on the existing figure and sets a generic title.
+        Plot stopping power (LET) as a function of energy.
+    
+        :param label: Optional label for the plot legend.
+        :type label: str, optional
+        :param show: Whether to call plt.show().
+        :type show: bool
+        :param new_figure: If True, create a new figure and title; otherwise, reuse the current axes.
+        :type new_figure: bool
         """
         if new_figure:
             plt.figure(figsize=(8, 5))
@@ -162,7 +221,14 @@ class StoppingPowerTable:
             plt.show()
 
     def resample(self, new_grid: np.ndarray):
-        """Resample LET on a new energy grid using log-linear interpolation."""
+        """
+        Resample the LET curve onto a new energy grid using log-log interpolation.
+    
+        :param new_grid: The target energy grid (must be strictly increasing).
+        :type new_grid: np.ndarray
+    
+        :raises ValueError: If the new grid is not strictly increasing.
+        """
         if not np.all(np.diff(new_grid) > 0):
             raise ValueError("New energy grid must be strictly increasing.")
         log_energy = np.log10(self.energy)
@@ -173,22 +239,36 @@ class StoppingPowerTable:
 
     def interpolate(self, *, energy: np.ndarray = None, let: np.ndarray = None, loglog: bool = True):
         """
-        Interpolate LET or energy values using the internal data, delegating to Interpolator.
-        
-        Parameters:
-          energy: Energy values at which to interpolate LET (if given).
-          let: LET values at which to interpolate energy (if given).
-          loglog: Whether to use log-log interpolation.
-        
-        Returns:
-          Interpolated values or dict of results if LET is provided.
+        Interpolate LET or energy values using internal data.
+    
+        Delegates to `Interpolator` and supports log-log interpolation.
+    
+        :param energy: Energy values at which to compute LET.
+        :type energy: np.ndarray, optional
+        :param let: LET values at which to compute corresponding energies.
+        :type let: np.ndarray, optional
+        :param loglog: Whether to perform interpolation in log-log space.
+        :type loglog: bool
+    
+        :returns: Interpolated LETs or a dict of energies for each LET.
+        :rtype: np.ndarray or dict[float, np.ndarray]
         """
         interpolator = Interpolator(self.energy, self.let, loglog=loglog)
         return interpolator.interpolate(energy=energy, let=let)
     
     @staticmethod
     def from_txt(filepath: str) -> "StoppingPowerTable":
-        """Create a StoppingPowerTable instance from a .txt file."""
+        """
+        Create a StoppingPowerTable from a .txt file containing header and data.
+        
+        :param filepath: Path to the input .txt file.
+        :type filepath: str
+        
+        :returns: StoppingPowerTable instance parsed from file.
+        :rtype: StoppingPowerTable
+        
+        :raises ValueError: If required header keys or element definitions are missing or inconsistent.
+        """
         filepath = Path(filepath)
         with open(filepath, 'r') as f:
             lines = f.readlines()

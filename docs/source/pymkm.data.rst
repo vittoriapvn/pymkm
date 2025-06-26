@@ -1,5 +1,10 @@
-pymkm.data package
-==================
+pymkm.data
+==========
+
+.. automodule:: pymkm.data
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Subpackages
 -----------
@@ -8,11 +13,3 @@ Subpackages
    :maxdepth: 4
 
    pymkm.data.defaults
-
-Module contents
----------------
-
-.. automodule:: pymkm.data
-   :members:
-   :undoc-members:
-   :show-inheritance:

@@ -7,10 +7,9 @@ Welcome to pyMKM's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-
+   pymkm
 
 Indices and tables
 ==================

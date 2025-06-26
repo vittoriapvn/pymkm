@@ -1,3 +1,13 @@
+"""
+Plotting utilities for MKTable results.
+
+This module defines the `plot()` method for the MKTable class, which allows visualization
+of microdosimetric quantities such as z̄*, z̄_d, and z̄_n as functions of energy or LET
+for different ions.
+
+Plots include optional display of model configuration and geometry.
+"""
+
 from typing import List, Optional, Union
 import matplotlib.pyplot as plt
 plt.rcParams.update({
@@ -18,6 +28,16 @@ import numpy as np
 from .core import MKTable
 
 def _validate_plot_columns(x: str, y: str):
+    """
+    Validate that x and y are valid MKTable data columns.
+    
+    :param x: Name of the x-axis variable ('energy' or 'let').
+    :type x: str
+    :param y: Name of the y-axis variable ('z_bar_star_domain', 'z_bar_domain', or 'z_bar_nucleus').
+    :type y: str
+    
+    :raises ValueError: If x or y are not among the allowed options.
+    """
     allowed_x = {"energy", "let"}
     allowed_y = {"z_bar_star_domain", "z_bar_domain", "z_bar_nucleus"}
     if x not in allowed_x:
@@ -34,25 +54,19 @@ def plot(self: MKTable,
     """
     Plot microdosimetric quantities from the MKTable for one or more ions.
 
-    Parameters
-    ----------
-    ions : list of str or int, optional
-        List of ions to include in the plot. Can be names (e.g. 'Carbon'), symbols ('C'), or atomic numbers (6).
-        If None, all available ions in the table are plotted.
-    x : str, default="energy"
-        The x-axis variable. Must be either "energy" or "let".
-    y : str, default="z_bar_star_domain"
-        The y-axis variable. Must be one of "z_bar_star_domain", "z_bar_domain", or "z_bar_nucleus".
-    verbose : bool, default=False
-        If True, displays a text box with model configuration parameters on the plot.
+    :param ions: List of ion identifiers (e.g., 'C', 6, 'Carbon'). If None, all ions are plotted.
+    :type ions: list[str or int], optional
+    :param x: Quantity for the x-axis ('energy' or 'let').
+    :type x: str
+    :param y: Quantity for the y-axis ('z_bar_star_domain', 'z_bar_domain', or 'z_bar_nucleus').
+    :type y: str
+    :param verbose: If True, displays model configuration details on the plot.
+    :type verbose: bool
 
-    Raises
-    ------
-    RuntimeError
-        If the table has not been computed yet.
-    ValueError
-        If invalid column names are provided for x or y.
+    :raises RuntimeError: If no results are available in MKTable.
+    :raises ValueError: If invalid column names are provided.
     """
+    
     if not self.table:
         raise RuntimeError("No computed results found. Please run 'compute()' before plotting.")
 

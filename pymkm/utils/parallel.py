@@ -1,15 +1,32 @@
+"""
+Parallelization utility for determining optimal worker count.
+
+This module provides a helper function:
+
+- :func:`optimal_worker_count`:
+  Computes the optimal number of worker processes to use for parallel tasks,
+  based on workload size and available CPU cores.
+
+It ensures at least one worker is used, avoids oversubscription, and supports
+both iterable and integer inputs for task sizing.
+
+Intended for internal use in MKTable computation and other parallel workflows.
+"""
+
 import os
 
 def optimal_worker_count(workload) -> int:
     """
-    Determine an optimal number of workers based on workload size and CPU availability.
+    Determine the optimal number of worker processes based on workload size and CPU availability.
 
-    Parameters:
-    - workload: iterable or int
-        The size of the task set (e.g., number of elements to compute).
+    If the workload size is smaller than the number of CPU cores, the number of workers
+    is set equal to the workload size. Otherwise, one core is reserved to avoid oversubscription.
 
-    Returns:
-    - int: Number of worker processes to use (minimum 1).
+    :param workload: The total number of tasks to process. Can be an iterable or an integer.
+    :type workload: iterable or int
+
+    :returns: Optimal number of worker processes (always at least 1).
+    :rtype: int
     """
     # Get the number of CPU cores available, fallback to 1 if not detected
     num_cores = os.cpu_count() or 1

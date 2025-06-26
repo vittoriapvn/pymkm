@@ -1,3 +1,13 @@
+"""
+Plotting utilities for survival fraction curves.
+
+This module defines :meth:`SFTable.plot`, which visualizes survival fraction curves
+computed using MKM, SMK, or OSMK models for one or more ions.
+
+Plots are displayed as semilogarithmic survival vs. dose curves. The method also
+supports filtering by LET and displaying model parameters as annotations.
+"""
+
 import matplotlib.pyplot as plt
 plt.rcParams.update({
     "axes.linewidth": 1.2,
@@ -17,20 +27,16 @@ from .core import SFTable
 
 def plot(self, *, verbose: bool = False, let: float = None):
     """
-    Plot survival fraction curves stored in self.table.
+    Plot survival fraction curves stored in ``self.table``.
 
-    Parameters
-    ----------
-    verbose : bool, default=False
-        If True, displays model parameters on the plot.
-    let : float, optional
-        If provided, filters results to only those matching this LET (within tolerance).
+    :param verbose: If True, displays model parameters on the plot.
+    :type verbose: bool, optional
+    :param let: LET value [MeV/cm] to filter the curves to plot. If None, all results are shown.
+    :type let: float, optional
 
-    Raises
-    ------
-    ValueError
-        If no results are available or no match is found for the specified LET.
+    :raises ValueError: If no results are available or no match is found for the specified LET.
     """
+    
     if not self.table:
         raise ValueError("No survival data available. Run 'compute()' first.")
 

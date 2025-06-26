@@ -64,7 +64,7 @@ dmypy.json
 .vscode/
 
 # Custom project files
-*.bat
 *.sh
+build_and_verify.bat
 sync_dependencies_grep.py
 .spyproject/

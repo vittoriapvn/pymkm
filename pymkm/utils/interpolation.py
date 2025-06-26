@@ -1,26 +1,61 @@
+"""
+Interpolation utilities for non-monotonic LET and specific energy data.
+
+This module defines the :class:`Interpolator`, a general-purpose tool
+for inverting and interpolating energy–LET relationships. It supports:
+
+- Monotonic and non-monotonic data
+- Log-log interpolation when appropriate
+- Mapping energy → LET and LET → energy
+  (including one-to-many inversion for non-monotonic curves)
+
+The main use case is microdosimetric table construction, where interpolation
+of stopping power curves is needed in both directions.
+
+Examples
+--------
+
+>>> interp = Interpolator(energy_array, let_array, loglog=True)
+>>> let_vals = interp.interpolate(energy=[10, 100])
+>>> energy_vals = interp.interpolate(let=[5.2])
+"""
+
 from typing import Union, Sequence, Dict
 import numpy as np
 
 class Interpolator:
     """
-    A general-purpose interpolator for LET or specific energy curves,
-    supporting non-monotonic data and optional log-log interpolation.
+    General-purpose interpolator for LET or specific energy curves.
+
+    Supports non-monotonic data by segmenting the input and optionally applies
+    log-log interpolation when both axes are positive.
     """
 
     def __init__(self, energy: np.ndarray, values: np.ndarray, loglog: bool = False):
         """
-        Initialize the interpolator.
-
-        Parameters:
-          energy: Array of energy values.
-          values: Array of LET or specific energy values.
-          loglog: Whether to apply log-log interpolation.
+        Initialize the Interpolator.
+    
+        :param energy: Array of energy values (x-axis).
+        :type energy: np.ndarray
+        :param values: Array of LET or specific energy values (y-axis).
+        :type values: np.ndarray
+        :param loglog: If True, applies log-log interpolation.
+        :type loglog: bool
         """
         self.energy = np.asarray(energy)
         self.values = np.asarray(values)
         self.loglog = loglog
 
     def _identify_monotonic_segments(self):
+        """
+        Identify contiguous monotonic segments in the values array.
+    
+        The method detects changes in the sign of the derivative and returns
+        index ranges where the function is either strictly increasing or decreasing.
+    
+        :returns: List of (start_index, end_index) tuples defining each monotonic segment.
+        :rtype: list[tuple[int, int]]
+        """
         y_array = self.values
         diff = np.diff(y_array)
         sign_changes = np.where(np.diff(np.sign(diff)))[0] + 1
@@ -35,13 +70,18 @@ class Interpolator:
 
     def _interpolate_energy_for_let(self, let_input: Union[float, Sequence[float]]) -> Dict[float, np.ndarray]:
         """
-        Interpolates energy values corresponding to given LET input(s).
-
-        Parameters:
-          let_input: float or array-like LET values.
-
-        Returns:
-          Dict[float, np.ndarray]: Each LET key maps to array of energies where it occurs.
+        Interpolate energy values corresponding to one or more LET inputs.
+    
+        For non-monotonic curves, each LET input may correspond to multiple energy values.
+    
+        :param let_input: A single LET value or a sequence of LET values.
+        :type let_input: float or Sequence[float]
+    
+        :returns: A dictionary mapping each input LET value to one or more interpolated energy values.
+        :rtype: dict[float, np.ndarray]
+    
+        :raises ValueError: If any LET input is outside the range of known values, or if log-log mode is used
+                            with non-positive values.
         """
         let_input = np.atleast_1d(let_input)
         min_let = self.values.min()
@@ -100,13 +140,16 @@ class Interpolator:
 
     def _interpolate_let_for_energy(self, energy_input: Union[float, Sequence[float]]) -> np.ndarray:
         """
-        Interpolates LET values corresponding to given energy input(s).
-
-        Parameters:
-          energy_input: float or array-like energy values.
-
-        Returns:
-          np.ndarray: Array of interpolated LET values.
+        Interpolate LET values corresponding to one or more energy inputs.
+    
+        :param energy_input: A single energy value or a sequence of energy values.
+        :type energy_input: float or Sequence[float]
+    
+        :returns: Array of interpolated LET values.
+        :rtype: np.ndarray
+    
+        :raises ValueError: If any energy input is outside the range of known energies,
+                            or if log-log mode is used with non-positive values.
         """
         energy_input = np.atleast_1d(energy_input)
         min_e, max_e = self.energy.min(), self.energy.max()
@@ -132,25 +175,23 @@ class Interpolator:
 
     def interpolate(self, *, energy=None, let=None):
         """
-        Interpolates LET or energy values depending on the input.
-
-        This is a unified interface to perform:
-          - LET interpolation from given energy values (energy → LET)
-          - Energy interpolation from given LET values (LET → energy),
-            possibly yielding multiple values per LET due to non-monotonicity.
-
-        Parameters:
-          energy (float or array-like, optional): Energy value(s) at which to interpolate LET.
-          let (float or array-like, optional): LET value(s) at which to interpolate energy.
-
-        Returns:
-          np.ndarray or dict[float, np.ndarray]:
-            If `energy` is provided, returns interpolated LET values.
-            If `let` is provided, returns a dictionary mapping each LET value
-            to an array of corresponding energy values (possibly multiple).
-
-        Raises:
-          ValueError: If both or neither of `energy` and `let` are provided.
+        Interpolate LET or energy values depending on the input.
+    
+        This is a unified interface for:
+          - Energy → LET interpolation (using `energy` input)
+          - LET → Energy interpolation (using `let` input)
+    
+        :param energy: Energy value(s) at which to interpolate LET.
+        :type energy: float or array-like, optional
+        :param let: LET value(s) at which to interpolate energy.
+        :type let: float or array-like, optional
+    
+        :returns: 
+            - If `energy` is provided, returns an array of LET values.
+            - If `let` is provided, returns a dict mapping each LET value to an array of energy values.
+        :rtype: np.ndarray or dict[float, np.ndarray]
+    
+        :raises ValueError: If both `energy` and `let` are provided, or if neither is provided.
         """
         if energy is not None and let is not None:
             raise ValueError("Provide only one of `energy` or `let`, not both.")

@@ -1,6 +1,23 @@
+"""
+Container for managing multiple stopping power tables.
+
+This module defines the :class:`StoppingPowerTableSet`, a high-level
+container for multiple :class:`~pymkm.io.stopping_power.StoppingPowerTable`
+instances.
+
+Main features:
+
+- Add/remove/get tables via ion name, symbol, or atomic number
+- Batch resampling, filtering, and plotting
+- I/O utilities to load/save in JSON or directory-based formats
+- Support for default sources (e.g., mstar_3_12, geant4_11_3_0)
+
+Used by MKTable to supply LET data per ion.
+"""
+
 import json
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 import numpy as np
 
 from pymkm.io.stopping_power import StoppingPowerTable
@@ -9,41 +26,51 @@ from pymkm.io.data_registry import list_available_defaults, get_default_txt_path
 
 class StoppingPowerTableSet:
     """
-    A container for multiple StoppingPowerTable instances.
+    A container for managing multiple StoppingPowerTable instances.
 
-    Each table is keyed by the ion's full name (e.g. "Carbon", "Oxygen"),
-    and can be accessed via various identifier formats. All public methods
-    accept the following formats to reference a given ion:
-    
-    - Full name (e.g. "Carbon")
-    - Symbol (e.g. "C")
-    - Atomic number (integer or string, e.g. 6 or "6")
+    Provides unified access to stopping power curves for multiple ions, identified
+    by name, symbol, or atomic number. Supports serialization, resampling, filtering,
+    and plotting.
     """
 
     def __init__(self):
+        """
+        Initialize an empty StoppingPowerTableSet.
+        """
         self.tables: Dict[str, StoppingPowerTable] = {}
         self.source_info: Optional[str] = None  # Track origin
 
     def add(self, ion_input: str, table: StoppingPowerTable):
         """
-        Add a table to the set. The ion identifier can be a full name (e.g., "Carbon"),
-        a symbol (e.g., "C"), or an atomic number (e.g., 6 or "6"). It will be normalized to the full name.
+        Add a stopping power table to the set.
+        
+        :param ion_input: Ion identifier (name, symbol, or atomic number).
+        :type ion_input: str
+        :param table: Instance of :class:`~pymkm.io.stopping_power.StoppingPowerTable` to add.
+        :type table: pymkm.io.stopping_power.StoppingPowerTable
         """
         key = self._map_to_fullname(ion_input)
         self.tables[key] = table
 
     def remove(self, ion_input: str):
         """
-        Remove a table from the set. The ion identifier can be a full name, symbol,
-        or atomic number. It will be normalized to the full name key.
+        Remove a table by ion identifier.
+        
+        :param ion_input: Ion name, symbol, or atomic number.
+        :type ion_input: str
         """
         key = self._map_to_fullname(ion_input)
         self.tables.pop(key, None)
 
     def get(self, ion_input: str) -> Optional[StoppingPowerTable]:
         """
-        Remove a table from the set. The ion identifier can be a full name, symbol,
-        or atomic number. It will be normalized to the full name key.
+        Retrieve a table by ion identifier.
+    
+        :param ion_input: Ion name, symbol, or atomic number.
+        :type ion_input: str
+    
+        :returns: Corresponding :class:`~pymkm.io.stopping_power.StoppingPowerTable` or None.
+        :rtype: pymkm.io.stopping_power.StoppingPowerTable or None
         """
         key = self._map_to_fullname(ion_input)
         return self.tables.get(key)
@@ -73,17 +100,46 @@ class StoppingPowerTableSet:
         return self.tables.items()
 
     def to_dict(self) -> Dict[str, dict]:
+        """
+        Serialize all tables to a dictionary.
+        
+        :returns: Dictionary of ion names to serialized data.
+        :rtype: dict[str, dict]
+        """
         return {k: v.to_dict() for k, v in self.tables.items()}
 
     def to_json(self) -> str:
+        """
+        Serialize the set to a JSON string.
+        
+        :returns: JSON-formatted string.
+        :rtype: str
+        """
         return json.dumps(self.to_dict(), indent=2)
 
     def save(self, filepath: str):
+        """
+        Save the table set to a JSON file.
+        
+        :param filepath: Output file path.
+        :type filepath: str
+        """
         with open(filepath, 'w') as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
     def from_dict(cls, data: Dict[str, dict]) -> "StoppingPowerTableSet":
+        """
+        Create a table set from a dictionary.
+        
+        :param data: Dictionary mapping ion names to serialized tables.
+        :type data: dict[str, dict]
+        
+        :returns: StoppingPowerTableSet instance.
+        :rtype: StoppingPowerTableSet
+        
+        :raises ValueError: If tables have inconsistent source program or ionization potential.
+        """
         instance = cls()
         reference_program = None
         reference_ipot = None
@@ -104,6 +160,15 @@ class StoppingPowerTableSet:
 
     @classmethod
     def from_json(cls, json_str: str) -> "StoppingPowerTableSet":
+        """
+        Create a table set from a JSON string.
+    
+        :param json_str: JSON-formatted table set string.
+        :type json_str: str
+    
+        :returns: Deserialized StoppingPowerTableSet.
+        :rtype: StoppingPowerTableSet
+        """        
         data = json.loads(json_str)
         instance = cls.from_dict(data)
         instance.source_info = "json"
@@ -111,6 +176,15 @@ class StoppingPowerTableSet:
 
     @classmethod
     def load(cls, filepath: str) -> "StoppingPowerTableSet":
+        """
+        Load a table set from a JSON file.
+        
+        :param filepath: Path to JSON file.
+        :type filepath: str
+        
+        :returns: Loaded StoppingPowerTableSet.
+        :rtype: StoppingPowerTableSet
+        """
         with open(filepath, 'r') as f:
             data = json.load(f)
         instance = cls.from_dict(data)
@@ -119,6 +193,15 @@ class StoppingPowerTableSet:
 
     @classmethod
     def from_directory(cls, directory: str) -> "StoppingPowerTableSet":
+        """
+        Load all .txt stopping power tables from a directory.
+    
+        :param directory: Path to directory containing .txt files.
+        :type directory: str
+    
+        :returns: StoppingPowerTableSet with all successfully loaded tables.
+        :rtype: StoppingPowerTableSet
+        """
         instance = cls()
         reference_program = None
         reference_ipot = None
@@ -146,6 +229,17 @@ class StoppingPowerTableSet:
 
     @classmethod
     def from_default_source(cls, source: str) -> "StoppingPowerTableSet":
+        """
+        Load tables from a default internal source (e.g., "mstar_3_12").
+        
+        :param source: Name of the predefined source directory.
+        :type source: str
+        
+        :returns: Table set initialized from source.
+        :rtype: StoppingPowerTableSet
+        
+        :raises RuntimeError: If any file cannot be loaded.
+        """
         instance = cls()
         for filename in list_available_defaults(source):
             try:
@@ -161,11 +255,15 @@ class StoppingPowerTableSet:
     @staticmethod
     def _map_to_fullname(ion_input: str) -> str:
         """
-        Infer the full ion name from the provided identifier.
-        Supports:
-        - Full names (e.g. "Carbon")
-        - Symbols (e.g. "C")
-        - Atomic numbers (e.g. 6 or "6")
+        Convert ion identifier to full element name.
+    
+        Supports input as name, symbol, or atomic number.
+    
+        :param ion_input: Ion identifier.
+        :type ion_input: str
+    
+        :returns: Full name of the ion.
+        :rtype: str
         """
         lookup = StoppingPowerTable.get_lookup_table()
     
@@ -191,12 +289,24 @@ class StoppingPowerTableSet:
         return ion_input
 
     def get_available_ions(self) -> List[str]:
+        """
+        Get the list of ion names present in the set.
+        
+        :returns: List of ion names.
+        :rtype: list[str]
+        """
         return list(self.tables.keys())
 
     def filter_by_ions(self, ion_inputs: List[str]) -> "StoppingPowerTableSet":
         """
-        Return a new table set containing only the tables matching the provided ion identifiers.
-        Each identifier can be a full name, symbol, or atomic number; all are normalized to full names.
+        Create a subset containing only the specified ions.
+        Each table is a :class:`~pymkm.io.stopping_power.StoppingPowerTable` instance.
+        
+        :param ion_inputs: List of identifiers (names, symbols, or atomic numbers).
+        :type ion_inputs: list[str]
+        
+        :returns: New StoppingPowerTableSet with selected ions.
+        :rtype: StoppingPowerTableSet
         """
         subset = StoppingPowerTableSet()
         for ion in ion_inputs:
@@ -207,12 +317,36 @@ class StoppingPowerTableSet:
         return subset
 
     def get_energy_grid(self, ion_input: str) -> np.ndarray:
+        """
+        Get the energy grid for a given ion.
+    
+        :param ion_input: Ion identifier.
+        :type ion_input: str
+    
+        :returns: Energy array.
+        :rtype: np.ndarray
+        """
         return self.get(ion_input).energy_grid
 
     def get_stopping_power(self, ion_input: str) -> np.ndarray:
+        """
+        Get the stopping power values for a given ion.
+    
+        :param ion_input: Ion identifier.
+        :type ion_input: str
+    
+        :returns: LET array.
+        :rtype: np.ndarray
+        """
         return self.get(ion_input).stopping_power
 
     def get_common_energy_range(self) -> Optional[List[float]]:
+        """
+        Get the overlapping energy range across all tables.
+        
+        :returns: [min, max] energy range, or None if no common range exists.
+        :rtype: list[float] or None
+        """
         if not self.tables:
             return None
         mins = [np.min(t.energy_grid) for t in self.tables.values()]
@@ -223,32 +357,27 @@ class StoppingPowerTableSet:
 
     def resample_all(self, new_grid: np.ndarray):
         """
-        Resample the LET values of all tables in the set to a new common energy grid.
+        Resample the LET curves of all tables onto a new energy grid.
         
-        Parameters
-        ----------
-        new_grid : np.ndarray
-            A strictly increasing array of energy values [MeV/u] on which to resample
-            the stopping power curves of all ions in the set.
+        :param new_grid: Strictly increasing energy grid in MeV/u.
+        :type new_grid: np.ndarray
         
-        Notes
-        -----
-        This modifies the internal `energy` and `let` arrays of each
-        `StoppingPowerTable` instance by interpolating in log-log space.
+        :raises ValueError: If the grid is not strictly increasing.
         """
         for t in self.tables.values():
             t.resample(new_grid)
     
     def interpolate_all(self, energy: np.ndarray, loglog: bool = True) -> Dict[str, np.ndarray]:
         """
-        Perform forward interpolation (energy → LET) for all ions.
+        Interpolate LET values at given energies for all tables.
     
-        Parameters:
-          energy: Energy values (array-like) to interpolate LET.
-          loglog: Use log-log interpolation if True.
+        :param energy: Energy values at which to interpolate.
+        :type energy: np.ndarray
+        :param loglog: Use log-log interpolation if True.
+        :type loglog: bool
     
-        Returns:
-          Dict of interpolated LET arrays for each ion.
+        :returns: Dictionary mapping ion names to interpolated LET arrays.
+        :rtype: dict[str, np.ndarray]
         """
         return {
             ion: table.interpolate(energy=energy, loglog=loglog)
@@ -257,10 +386,14 @@ class StoppingPowerTableSet:
 
     def plot(self, ions: Optional[List[str]] = None, show: bool = True, single_plot: bool = True):
         """
-        Plot the stopping power curves.
-        If single_plot is True, all selected ions are plotted on one figure.
-        Otherwise, a new figure is created for each ion.
-        The ion identifier provided in the plot call can be either full name or symbol.
+        Plot stopping power curves for one or more ions.
+    
+        :param ions: List of ion identifiers to plot. If None, all are plotted.
+        :type ions: list[str], optional
+        :param show: Whether to display the plot using plt.show().
+        :type show: bool
+        :param single_plot: If True, plot all ions on one figure; otherwise, one figure per ion.
+        :type single_plot: bool
         """
         import matplotlib.pyplot as plt
         ions_to_plot = ions if ions is not None else list(self.tables.keys())

@@ -1,21 +1,15 @@
-pymkm.biology package
-=====================
-
-Submodules
-----------
-
-pymkm.biology.oxygen\_effect module
------------------------------------
-
-.. automodule:: pymkm.biology.oxygen_effect
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
+pymkm.biology
+=============
 
 .. automodule:: pymkm.biology
    :members:
    :undoc-members:
    :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   pymkm.biology.oxygen_effect
