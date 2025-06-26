@@ -1,10 +1,14 @@
 # pyMKM
 
 [![CI](https://github.com/BeppeMagro/pymkm/actions/workflows/ci.yml/badge.svg)](https://github.com/BeppeMagro/pymkm/actions)
+[![Docs](https://img.shields.io/badge/docs-online-success)](https://beppemagro.github.io/pymkm/)
+[![Deploy Docs](https://github.com/BeppeMagro/pymkm/actions/workflows/gh-pages.yml/badge.svg)](https://github.com/BeppeMagro/pymkm/actions/workflows/gh-pages.yml)
 [![TestPyPI](https://img.shields.io/badge/TestPyPI-pymkm-blue)](https://test.pypi.org/project/pymkm/)
 
 `pyMKM` is an open-source Python package for computing microdosimetric quantities using MKM, SMK, and OSMK models.  
 It is designed for use in radiobiology research and clinical applications in hadrontherapy.
+
+📘 **[View the full documentation here](https://beppemagro.github.io/pymkm/)**
 
 ---
 
@@ -29,7 +33,7 @@ pip install pymkm
 From source:
 
 ```bash
-git clone https://github.com/BeppMagro/pymkm.git
+git clone https://github.com/BeppeMagro/pymkm.git
 cd pymkm
 pip install -e .[dev]
 ```
@@ -75,19 +79,19 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 If you use this software in your research, please cite:
 
 > Magro G., Pavanello V., Mairani A.  
-> *pyMKM: Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy.*
+> *pyMKM: Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy.*  
 > GitHub repository: [pymkm](https://github.com/BeppeMagro/pymkm)
 
 ---
 
 ## 💰 Funding
 
-This work was funded by the National Plan for NRRP Complementary Investments (PNC) in the call for the funding of research initiatives for technologies and innovative trajectories in the health – project n. PNC0000003 – *AdvaNced Technologies for Human-centrEd Medicine* (project acronym: **ANTHEM** – Cascade Call launched by SPOKE 3 POLIMI: “PRECISION”).
+This work was funded by the National Plan for NRRP Complementary Investments (PNC) in the call for the funding of research initiatives for technologies and innovative trajectories in the health – project n. PNC0000003 – *AdvaNced Technologies for Human-centrEd Medicine* (project acronym: **ANTHEM** – Cascade Call launched by SPOKE 3 POLIMI: **PRECISION**).
 
 ---
 
 ## 🌐 Links
 
-- 📘 Documentation: *(coming soon)*
+- 📘 Documentation: [https://beppemagro.github.io/pymkm/](https://beppemagro.github.io/pymkm/)
 - 🧪 Test results: via GitHub Actions
 - 💬 Issues: [GitHub Issues](https://github.com/BeppeMagro/pymkm/issues)
