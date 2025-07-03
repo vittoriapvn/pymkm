@@ -1,38 +1,42 @@
 """
 Tools for generating microdosimetric model tables (MKTable).
 
-This subpackage provides all components needed to generate, manage,
-analyze and export microdosimetric tables used in the MKM and SMK
-radiobiological models, including the oxygen-enhanced OSMK 2023 variant.
+This subpackage provides all components to compute, analyze, and export
+dose-averaged specific energy quantities used in the Microdosimetric Kinetic Model (MKM),
+its stochastic extension (SMK), and the oxygen-enhanced variant as described by Inaniwa & Kanematsu, (JRR, 2023).
 
-The core workflow includes configuration of physical and numerical parameters,
-computation of dose-averaged specific energies, optional overkill corrections,
-and export to interoperable formats.
+The typical workflow includes:
+- configuration of model and geometry parameters
+- per-ion table computation from LET data
+- saturation correction and optional hypoxia adjustment
+- interactive visualization and export to clinical-compatible formats
 
 Modules
 -------
 
 - :mod:`core`:
   Defines :class:`~pymkm.mktable.core.MKTableParameters` and :class:`~pymkm.mktable.core.MKTable`,
-  which manage model configuration, geometry, stopping power sets, and computed data.
+  which manage configuration, geometry, stopping power sets, and result storage.
 
 - :mod:`compute`:
-  Implements :meth:`~pymkm.mktable.core.MKTable.compute`, the main engine to compute 
-  microdosimetric quantities (z̄*, z̄_d, z̄_n) from input LET tables.
+  Implements :meth:`~pymkm.mktable.core.MKTable.compute`, the numerical engine that builds
+  microdosimetric tables from energy–LET inputs.
 
 - :mod:`plot`:
-  Provides :meth:`~pymkm.mktable.core.MKTable.plot` for visualizing results for multiple ions,
-  with energy or LET on the x-axis.
+  Adds :meth:`~pymkm.mktable.core.MKTable.plot`, enabling multi-ion plots of 
+  dose-averaged specific energy quantities vs. energy or LET.
 
 Usage
 -----
 
-This subpackage is the main user-facing interface of pyMKM.
-After configuring a :class:`~pymkm.mktable.core.MKTableParameters` object, you can:
+This subpackage is the main high-level interface to pyMKM.
 
 .. code-block:: python
 
-    mktable = MKTable(parameters)
+    from pymkm.mktable import MKTable, MKTableParameters
+
+    params = MKTableParameters(domain_radius=0.5, nucleus_radius=3.0, beta0=0.05)
+    mktable = MKTable(params)
     mktable.compute()
     mktable.plot()
     mktable.save()

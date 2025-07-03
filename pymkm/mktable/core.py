@@ -1,13 +1,13 @@
 """
-Core classes for configuring and managing MKM/SMK table generation.
+Core classes for MKM and SMK microdosimetric table generation.
 
-This module defines the configuration container :class:`MKTableParameters` and the
-main computation and I/O manager :class:`MKTable`. These classes allow users to
-construct microdosimetric tables using either the classic MKM or the stochastic SMK model,
-with optional OSMK 2023 oxygen corrections.
+This module defines:
+- :class:`MKTableParameters`: configuration container for geometry, models, and computation settings
+- :class:`MKTable`: main interface for generating, storing, and exporting microdosimetric tables
 
-Tables are computed per ion and can be saved, loaded, summarized, or exported to
-external formats compatible with clinical systems.
+Supports both classic MKM and stochastic SMK models, with optional OSMK 2023 corrections for hypoxia.
+Each MKTable instance manages the full computation pipeline per ion type, including saving,
+loading, displaying, and exporting results.
 """
 
 from dataclasses import asdict
@@ -144,7 +144,7 @@ class MKTable:
     
     def save(self, filename: Optional[Union[str, Path]] = None):
         """
-        Save the MKTable to a pickle file.
+        Save the computed MKTable results to a pickle file.
     
         :param filename: Optional output file path. If None, uses default name.
         :type filename: str or Path, optional
@@ -160,12 +160,12 @@ class MKTable:
         
     def load(self, filename: Union[str, Path]):
         """
-        Load MKTable data from a pickle file.
+        Load previously saved MKTable results from a pickle file.
     
-        :param filename: Path to the pickle file.
+        :param filename: Path to the .pkl file containing saved table data.
         :type filename: str or Path
     
-        :raises FileNotFoundError: If the file does not exist.
+        :raises FileNotFoundError: If the specified file does not exist.
         """
         path = Path(filename)
         if not path.exists():
@@ -176,9 +176,12 @@ class MKTable:
 
     def summary(self, verbose: bool = False):
         """
-        Print a tabulated summary of current MKTable configuration.
+        Print a summary of the current MKTable configuration.
     
-        :param verbose: If True, includes technical and ion-specific settings.
+        Displays model type, physical parameters, and sampling settings.
+        If verbose is True, lists available ions and technical details.
+    
+        :param verbose: If True, include detailed configuration info.
         :type verbose: bool, optional
         """
         param_dict = asdict(self.params)
@@ -217,12 +220,12 @@ class MKTable:
 
     def __init__(self, parameters: MKTableParameters, sp_table_set: Optional[StoppingPowerTableSet] = None):
         """
-        Initialize an MKTable object with configuration and stopping power tables.
+        Initialize an MKTable instance with model configuration and stopping power data.
     
-        :param parameters: Model and geometry parameters.
+        :param parameters: Geometry, model, and numerical settings for table generation.
         :type parameters: MKTableParameters
-        :param sp_table_set: Optional preloaded stopping power table set.
-        :type sp_table_set: StoppingPowerTableSet, optional
+        :param sp_table_set: Optional stopping power data. If None, a default set is loaded.
+        :type sp_table_set: Optional[StoppingPowerTableSet]
         """
         self.params = parameters
         self.sp_table_set = sp_table_set or StoppingPowerTableSet.from_default_source("fluka_2020_0")
@@ -234,12 +237,12 @@ class MKTable:
         Perform internal consistency checks on MKTableParameters.
         
         Validates:
-        - Presence of either z0 or beta0 depending on MKM/SMK usage
-        - Correct handling of z0 and beta0 interaction
+        - Presence of either z₀ or β₀ depending on MKM/SMK usage
+        - Correct handling of z₀ and β₀ interaction
         - Presence of OSMK parameters if oxygen effect correction is enabled
         
         :raises ValueError: If critical parameters are missing or incompatible.
-        :raises Warning: If redundant or conflicting values are detected (e.g., both z0 and beta0).
+        :raises Warning: If redundant or conflicting values are detected (e.g., both z₀ and β₀).
         """
         p = self.params
 
@@ -273,10 +276,12 @@ class MKTable:
 
     def _refresh_parameters(self, original_params: Optional[MKTableParameters] = None) -> None:
         """
-        Reassign all parameter fields and print differences from previous config.
+        Refresh internal parameters and print changes from previous configuration.
     
-        :param original_params: Optional reference to compare against.
-        :type original_params: MKTableParameters, optional
+        Used after modifying or reloading MKTableParameters.
+    
+        :param original_params: Optional previous version for comparison.
+        :type original_params: Optional[MKTableParameters]
         """
         updated_fields = {}
         current = self.params
@@ -322,12 +327,14 @@ class MKTable:
 
     def display(self, preview_rows: int = 5):
         """
-        Display summaries and previews of all ion-specific results.
+        Print a formatted preview of the computed tables for all ions.
     
-        :param preview_rows: Number of top/bottom rows to show per ion.
-        :type preview_rows: int, optional
+        Shows metadata, model parameters, and head/tail of each ion's table.
     
-        :raises ValueError: If no results are available.
+        :param preview_rows: Number of rows to display from start and end of each table.
+        :type preview_rows: int
+    
+        :raises ValueError: If no tables have been computed.
         """
         if not self.table:
             raise ValueError("No computed results found. Please run 'compute()' first.")
@@ -363,18 +370,40 @@ class MKTable:
     ):
         """
         Export results to a .txt file compatible with external tools.
+       
+        Required `params` depend on the selected model:
     
-        :param params: Required metadata for export (model-dependent).
+        For model="classic" (MKM):
+            Required:
+                - "CellType": str
+                - "Alpha_0": float
+            Optional:
+                - "Beta": float
+    
+        For model="stochastic" (SMK):
+            Required:
+                - "CellType": str
+                - "Alpha_ref": float
+                - "Beta_ref": float
+                - "Alpha0": float
+            Optional:
+                - "Beta0": float
+                - "scale_factor": float (defaults to 1.0)
+    
+        :param params: Model-dependent metadata to include in the header.
         :type params: dict
-        :param filename: Optional path to output .txt file.
+        :param filename: Output file path. If None, a default name is generated.
         :type filename: str or Path, optional
-        :param model: Explicitly set export model: 'classic' or 'stochastic'.
+        :param model: Force output format. If None, inferred from configuration.
         :type model: Literal["classic", "stochastic"], optional
         :param max_atomic_number: Maximum Z for ions to include.
         :type max_atomic_number: int
     
-        :raises ValueError: If required params or results are missing.
-        :raises KeyError: If unexpected or missing keys are in `params`.
+        :raises ValueError:
+            - If no data has been computed yet.
+            - If required parameters are missing.
+            - If atomic number exceeds available Z range.
+        :raises KeyError: If unexpected or invalid keys are present in `params`.
         """
         if not self.table:
             raise ValueError("Cannot write: MKTable has not been computed yet. Run 'compute()' first.")

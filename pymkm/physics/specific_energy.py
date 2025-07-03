@@ -1,15 +1,37 @@
 """
-Computation of microdosimetric specific energy quantities.
+Computation of specific energy quantities for MKM and SMK models.
 
-This module implements the :class:`SpecificEnergy`, which calculates:
+This module defines the :class:`SpecificEnergy` to compute:
+- Single-event specific energy z₁(b)
+- Saturation-corrected z′₁(b) using z₀ (square-root or quadratic)
+- Dose-averaged values (z̄, z̄′)
 
-- Single-event specific energy z(b)
-- Saturation correction using z₀ (square-root or quadratic model)
-- Dose-averaged specific energy z̄
-- OSMK 2023 oxygen-effect corrections (via domain radius and z₀ scaling)
+The sensitive region is modeled as a water cylinder perpendicular to the ion path.
+Radial dose profiles are integrated using impact parameter b to match MKM/SMK formalisms.
 
-All calculations are based on radial dose profiles provided by a ParticleTrack instance,
-and integrate over geometry defined by a sensitive cylindrical volume.
+Example usage::
+
+    from pymkm.physics.particle_track import ParticleTrack
+    from pymkm.dosimetry.specific_energy import SpecificEnergy
+
+    # Load or generate a ParticleTrack instance
+    track = ParticleTrack(...)  # contains D(r) and penumbra radius
+
+    # Define geometry
+    region_radius = 0.5  # in micrometers
+    sz = SpecificEnergy(track, region_radius)
+
+    # Compute single-event specific energy z1(b)
+    z1_array, b_array = sz.single_event_specific_energy()
+
+    # Compute saturation parameter z0 from beta0
+    z0 = sz.compute_saturation_parameter(domain_radius=0.5, nucleus_radius=3.0, beta0=0.05)
+
+    # Apply saturation correction
+    z1_prime_array = sz.saturation_corrected_single_event_specific_energy(z0, z1_array)
+
+    # Compute dose-averaged specific energy (corrected)
+    z_prime_bar = sz.dose_averaged_specific_energy(z1_array, b_array, z1_prime_array, model="square_root")
 """
 
 import time
@@ -26,30 +48,25 @@ from pymkm.utils.parallel import optimal_worker_count
 
 class SpecificEnergy:
     """
-    Compute microdosimetric specific energy quantities for a single ion track.
-
-    This class provides methods for calculating:
-      - Single-event specific energy z(b)
-      - Saturation parameter z₀
-      - Saturation-corrected specific energy z′(b), z_sat(b)
-      - Dose-averaged specific energy z̄
-
-    The sensitive region is modeled as a cylinder perpendicular to the ion track.
+    Compute microdosimetric specific energy quantities from a single ion track.
+    
+    Supports MKM/SMK calculations of z₁(b), z′₁(b), z₀, and dose-averaged values.
+    The sensitive region is modeled as a cylinder perpendicular to the particle track.
     """
 
     def __init__(
         self, particle_track: ParticleTrack, region_radius: float
     ) -> None:
         """
-        Initialize a SpecificEnergy instance.
+        Initialize the specific energy calculator for a cylindrical sensitive region.
     
-        :param particle_track: A ParticleTrack instance describing the ion's radial dose distribution.
-        :type particle_track: pymkm.physics.particle_track.ParticleTrack
-        :param region_radius: Radius of the sensitive region (e.g., domain or nucleus), in micrometers.
+        :param particle_track: Radial dose profile of a single ion track, including penumbra radius.
+        :type particle_track: ParticleTrack
+        :param region_radius: Radius of the sensitive region (e.g. cell nucleus or domain), in micrometers.
         :type region_radius: float
     
         :raises TypeError: If `particle_track` is not a ParticleTrack instance.
-        :raises ValueError: If `region_radius` is not positive.
+        :raises ValueError: If `region_radius` is not strictly positive.
         """
         if not isinstance(particle_track, ParticleTrack):
             raise TypeError("particle_track must be an instance of ParticleTrack.")
@@ -69,21 +86,30 @@ class SpecificEnergy:
         return_time: bool = False
     ) -> Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, float]]:
         """
-        Compute the single-event specific energy z(b) as a function of impact parameter.
+        Compute z₁(b): single-event specific energy as a function of impact parameter.
+       
+        :param impact_parameters: Optional array of impact parameters b (in μm). 
+        :type impact_parameters: Optional[np.ndarray]
+        :param base_points_b: Number of sampling points for the b grid. 
+        :type base_points_b: Optional[int]
+        :param base_points_r: Number of radial integration points per b.
+        :type base_points_r: Optional[int]
+        :param parallel: If True, evaluates all b values in parallel using threads.
+        :type parallel: bool
+        :param return_time: If True, returns the computation time in seconds.
+        :type return_time: bool
     
-        :param impact_parameters: Optional array of impact parameters in micrometers. If None, a default grid is generated.
-        :type impact_parameters: np.ndarray, optional
-        :param base_points_b: Number of impact parameter points. If None, defaults to internal base setting.
-        :type base_points_b: int, optional
-        :param base_points_r: Number of radial sampling points. If None, defaults to internal base setting.
-        :type base_points_r: int, optional
-        :param parallel: Whether to parallelize over impact parameters.
-        :type parallel: bool, optional
-        :param return_time: Whether to also return elapsed wall time in seconds.
-        :type return_time: bool, optional
+        :return: 
+            - If `return_time` is False: tuple (z_array, b_array)
+            - If `return_time` is True: tuple (z_array, b_array, elapsed_time)
     
-        :returns: Tuple of (z_array, b_array) or (z_array, b_array, elapsed_time).
-        :rtype: tuple[np.ndarray, np.ndarray] or tuple[np.ndarray, np.ndarray, float]
+            where:
+            - z_array: specific energy per event at each b [Gy]
+            - b_array: impact parameter values [μm]
+            - elapsed_time: wall-clock time in seconds [s]
+        :rtype: Union[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, float]]
+    
+        :raises ValueError: If impact_parameters are invalid.
         """
         start_time = time.perf_counter()
 
@@ -115,14 +141,14 @@ class SpecificEnergy:
         self, b: float, base_points_r: Optional[int] = None
     ) -> float:
         """
-        Compute the single-event specific energy z(b) for a given impact parameter.
-    
-        :param b: Impact parameter in micrometers.
+        Compute z₁(b): specific energy deposited in a single event at impact parameter b.
+       
+        :param b: Impact parameter from ion path to region center [μm].
         :type b: float
-        :param base_points_r: Number of radial sampling points.
-        :type base_points_r: int, optional
+        :param base_points_r: Number of radial integration points. If None, defaults are used.
+        :type base_points_r: Optional[int]
     
-        :returns: Specific energy value at impact parameter b in Gy.
+        :return: Specific energy z₁(b) deposited in the region [Gy].
         :rtype: float
         """
         r_min = max(1e-6, b - self.region_radius)
@@ -148,19 +174,19 @@ class SpecificEnergy:
         beta0: float
     ) -> float:
         """
-        Compute the saturation parameter z₀ for overkill correction.
-    
-        :param domain_radius: Radius of the sensitive domain in micrometers.
+        Compute the saturation parameter z₀ for MKM overkill correction.
+            
+        :param domain_radius: Radius of the sensitive domain (e.g. sub-nuclear volume), in μm.
         :type domain_radius: float
-        :param nucleus_radius: Radius of the nucleus in micrometers.
+        :param nucleus_radius: Radius of the cell nucleus, in μm.
         :type nucleus_radius: float
-        :param beta0: Quadratic coefficient β₀ of the LQ model at low LET (Gy⁻²).
+        :param beta0: β₀ coefficient of the LQ model at low LET (in Gy⁻²).
         :type beta0: float
     
-        :returns: Saturation parameter z₀ in Gy.
+        :return: Saturation parameter z₀ in Gy.
         :rtype: float
     
-        :raises ValueError: If any input is non-positive.
+        :raises ValueError: If any input is not strictly positive.
         """
         if nucleus_radius <= 0 or domain_radius <= 0 or beta0 <= 0:
             raise ValueError("All input parameters (domain_radius, nucleus_radius, beta0) must be > 0.")
@@ -174,19 +200,23 @@ class SpecificEnergy:
         model: str = "square_root"
     ) -> np.ndarray:
         """
-        Apply saturation correction to single-event specific energy.
+        Compute z′₁(b): saturation-corrected specific energy from z₁(b) using z₀.
     
-        :param z0: Saturation parameter z₀ in Gy.
+        Applies overkill correction to single-event specific energy using either:
+          - Square-root model: z′₁(b) = z₀ · sqrt(1 - exp(-[z₁(b)/z₀]²))
+          - Quadratic model:   z₁_sat(b) = [z′₁(b)]² / z₁(b)
+    
+        :param z0: Saturation parameter z₀ (Gy).
         :type z0: float
-        :param z_array: Array of uncorrected z(b) values.
+        :param z_array: Array of uncorrected z₁(b) values (Gy).
         :type z_array: np.ndarray
-        :param model: Correction model to use ('square_root' or 'quadratic').
-        :type model: str, optional
+        :param model: Saturation correction model to apply: 'square_root' or 'quadratic'.
+        :type model: str
     
-        :returns: Array of corrected specific energy values.
+        :return: Array of corrected specific energy values: z′₁(b) or z₁_sat(b) (Gy).
         :rtype: np.ndarray
     
-        :raises ValueError: If model is unsupported.
+        :raises ValueError: If the model is not supported.
         """
         z_prime = z0 * np.sqrt(1 - np.exp(-(z_array ** 2) / (z0 ** 2)))
         if model == "square_root":
@@ -209,23 +239,31 @@ class SpecificEnergy:
         integration_method: str = "trapz"
     ) -> float:
         """
-        Compute the dose-averaged specific energy z̄.
-    
-        :param z_array: Uncorrected z(b) values (Gy).
+        Compute dose-averaged specific energy: z̄ or z̄′.
+
+        If no saturation correction is applied, computes:
+
+            z̄ = [ ∫ z₁(b)² * b db ] / [ ∫ z₁(b) * b db ]
+
+        If corrected values z′₁(b) are provided:
+          - Square-root model: uses [z′₁(b)]² in the numerator
+          - Quadratic model: uses z₁(b) or z₁_sat(b) in the numerator
+
+        :param z_array: Uncorrected single-event specific energy values z₁(b) [Gy].
         :type z_array: np.ndarray
-        :param b_array: Impact parameter values (μm), must be sorted.
+        :param b_array: Impact parameter values [μm], must be sorted.
         :type b_array: np.ndarray
-        :param z_corrected: Optional corrected z_eff(b) values.
-        :type z_corrected: np.ndarray, optional
-        :param model: Correction model ('square_root' or 'quadratic').
-        :type model: str, optional
+        :param z_corrected: Optional corrected values (e.g. z′₁(b) or z₁_sat(b)).
+        :type z_corrected: Optional[np.ndarray]
+        :param model: Saturation model used if z_corrected is given ('square_root' or 'quadratic').
+        :type model: str
         :param integration_method: Integration rule to use: 'trapz', 'simps', or 'quad'.
-        :type integration_method: str, optional
-    
-        :returns: Dose-averaged specific energy z̄ in Gy.
+        :type integration_method: str
+
+        :return: Dose-averaged specific energy [Gy].
         :rtype: float
-    
-        :raises ValueError: If integration method or model is invalid.
+
+        :raises ValueError: If model or integration method is invalid.
         """
     
         def integrate(y: np.ndarray) -> float:

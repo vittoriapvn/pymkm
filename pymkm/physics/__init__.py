@@ -14,15 +14,8 @@ Modules
 
 - :mod:`specific_energy`:
   Provides the :class:`~pymkm.physics.specific_energy.SpecificEnergy` class to compute
-  microdosimetric specific energy quantities, including z(b), z₀, saturation-corrected
+  microdosimetric specific energy quantities, including single-event saturation-corrected
   values, and dose-averaged specific energy.
-
-Usage
------
-
-These modules form the computational core of pyMKM and are typically used by
-higher-level interfaces to build LET tables, calculate saturation corrections,
-or derive biologically effective doses.
 """
 
 from .particle_track import ParticleTrack

@@ -2,26 +2,23 @@
 """
 Data resources for pyMKM.
 
-This subpackage provides structured data used in microdosimetric calculations,
-including periodic element properties and default stopping power tables.
+This subpackage provides structured data required for microdosimetric modeling,
+including periodic element definitions and reference stopping power tables
+from external Monte Carlo codes.
 
 Contents
 --------
 
 - ``elements.json``:
-  Lookup table mapping element names and symbols to atomic number, mass number, and visualization color.
-  Used for consistency and validation when initializing LET tables.
+  Lookup table mapping element symbols and names to atomic number, mass number,
+  and display color. Used for validating and initializing LET table inputs.
+  Elemental data are based on values published by the IUPAC:
+  https://ciaaw.org/atomic-weights.htm
 
 - ``defaults/``:
-  Contains precomputed stopping power tables (.txt files) for various Monte Carlo codes
-  and versions, organized by subfolder. These files are used to initialize
-  :class:`~pymkm.io.stopping_power.StoppingPowerTable` instances via 
+  Contains precomputed stopping power tables (in .txt format) for various Monte Carlo
+  transport codes and versions. These files can be used to initialize
+  :class:`~pymkm.io.stopping_power.StoppingPowerTable` via
   :func:`~pymkm.io.data_registry.get_default_txt_path` or
-  :class:`~pymkm.io.table_set.StoppingPowerTableSet.from_default_source`.
-
-Usage
------
-
-These resources are accessed internally using :mod:`importlib.resources`,
-so that they can be bundled as package data and accessed seamlessly whether installed or used locally.
+  :meth:`~pymkm.io.table_set.StoppingPowerTableSet.from_default_source`.
 """

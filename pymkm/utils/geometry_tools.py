@@ -71,7 +71,7 @@ class GeometryTools:
         :param radius_max: The maximum radius in micrometers.
         :type radius_max: float
         :param radius_min: The minimum radius in micrometers (default is 1e-3 µm).
-        :type radius_min: float, optional
+        :type radius_min: Optional[float]
         :param base_points: Baseline number of sampling points (default is 150).
         :type base_points: int
     

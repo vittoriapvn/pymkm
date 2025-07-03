@@ -1,16 +1,30 @@
 """
-Radial dose models for charged particle tracks.
+Radial dose models for charged particle tracks in water.
 
 This module defines the :class:`ParticleTrack`, which implements two analytical models:
 
-- Scholz-Kraft model (Phys. Med. Biol., 1996)
-- Kiefer-Chatterjee model (Radiat. Environ. Biophys., 1988)
+- Scholz-Kraft model (Adv. Space Res., 1996)
+- Kiefer-Chatterjee model (Radiat. Environ. Biophys., 1976 and Phys. Med. Biol., 1986)
+
+For model descriptions and a comparative analysis, see:
+Elsässer et al., (New J. Phys., 2008)
 
 Both models compute local dose as a function of radial distance from the ion trajectory,
 based on physical parameters such as energy, atomic number, LET, and core radius type.
 
 These dose profiles serve as the basis for computing specific energy deposition
 in MKM and SMK.
+
+Examples
+--------
+
+>>> from pymkm.physics.particle_track import ParticleTrack
+>>> track = ParticleTrack(model_name="Scholz-Kraft", energy=100)
+>>> r, d = track.initial_local_dose()
+>>> r.shape, d.shape
+((300,), (300,))
+>>> d[:3]
+array([val1, val2, val3])  # sample output
 """
 
 import numpy as np

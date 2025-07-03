@@ -1,18 +1,29 @@
 """
-Container for managing multiple stopping power tables.
+Management of multiple ion stopping power tables.
 
-This module defines the :class:`StoppingPowerTableSet`, a high-level
-container for multiple :class:`~pymkm.io.stopping_power.StoppingPowerTable`
-instances.
+This module defines the :class:`StoppingPowerTableSet`, a high-level container
+for managing multiple :class:`~pymkm.io.stopping_power.StoppingPowerTable` instances,
+each representing LET vs. energy data for a different ion in liquid water.
 
-Main features:
+Main features
+-------------
 
-- Add/remove/get tables via ion name, symbol, or atomic number
-- Batch resampling, filtering, and plotting
-- I/O utilities to load/save in JSON or directory-based formats
-- Support for default sources (e.g., mstar_3_12, geant4_11_3_0)
+- Add, remove, or retrieve tables by ion name, symbol, or atomic number
+- Batch interpolation, resampling, filtering, and plotting
+- JSON and directory-based I/O
+- Support for internal default sources: ``mstar_3_12``, ``geant4_11_3_0``, ``fluka_2020_0``
 
-Used by MKTable to supply LET data per ion.
+Used throughout pyMKM to provide LET data to physical and biological models.
+
+Examples
+--------
+
+>>> from pymkm.io.table_set import StoppingPowerTableSet
+>>> s = StoppingPowerTableSet.from_default_source("mstar_3_12")
+>>> sorted(s.get_available_ions())
+['Beryllium', 'Boron', 'Carbon', 'Fluorine', 'Helium', 'Hydrogen',
+ 'Lithium', 'Neon', 'Nitrogen', 'Oxygen']
+>>> s.get("Carbon").plot(show=False)
 """
 
 import json
@@ -389,7 +400,7 @@ class StoppingPowerTableSet:
         Plot stopping power curves for one or more ions.
     
         :param ions: List of ion identifiers to plot. If None, all are plotted.
-        :type ions: list[str], optional
+        :type ions: Optional[List[str]]
         :param show: Whether to display the plot using plt.show().
         :type show: bool
         :param single_plot: If True, plot all ions on one figure; otherwise, one figure per ion.

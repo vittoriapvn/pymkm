@@ -26,11 +26,13 @@ from .core import MKTable
 
 def _run_energy_let_task(func, args):
     """
-    Wrapper function for task execution in parallel pools.
-    
-    :param func: Callable to execute.
-    :param args: Arguments for the callable.
-    :returns: Result of func(*args).
+    Internal wrapper for multiprocessing task execution.
+
+    :param func: Callable function to execute.
+    :type func: Callable
+    :param args: Tuple of arguments for the function.
+    :type args: tuple
+    :return: Output of func(*args)
     """
     return func(*args)
 
@@ -41,18 +43,18 @@ def _compute_for_energy_let_pair(
     atomic_number: int
 ) -> dict:
     """
-    Compute microdosimetric quantities for a single (energy, LET) pair.
+    Compute specific energies for one (energy, LET) pair.
 
-    :param params: Flattened MKTableParameters as a dictionary.
+    :param params: Flattened MKTableParameters dictionary.
     :type params: dict
-    :param energy: Kinetic energy per nucleon (MeV/u).
+    :param energy: Kinetic energy per nucleon [MeV/u].
     :type energy: float
-    :param let: LET value in MeV/μm.
+    :param let: Linear energy transfer [MeV/cm].
     :type let: float
-    :param atomic_number: Atomic number Z of the ion.
+    :param atomic_number: Atomic number of the ion.
     :type atomic_number: int
 
-    :returns: Dictionary of computed quantities (z̄*, optionally z̄_d, z̄_n).
+    :return: Dictionary of computed microdosimetric quantities.
     :rtype: dict
     """
     track = ParticleTrack(
@@ -137,7 +139,7 @@ def _get_osmk2023_corrected_parameters(mktable: MKTable) -> tuple[float, float]:
 
 def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, integration_method: str = "trapz"):
     """
-    Compute all microdosimetric quantities for a given ion in the table set.
+    Compute all specific energies for a given ion in the table set.
 
     :param ion: Ion identifier (e.g., "C", "Carbon", 6).
     :type ion: str
@@ -221,25 +223,26 @@ def compute(
     integration_method: str = "trapz"
 ) -> None:
     """
-    Compute microdosimetric tables for the selected ions using MKM or SMK.
+    Compute per-ion microdosimetric tables using MKM or SMK model.
 
-    This method orchestrates all steps required to build dose-averaged quantities:
-    - Optional energy resampling
-    - z₀ estimation (if not provided)
-    - Specific energy calculation
-    - Saturation correction
-    - Table aggregation per ion
+    For each ion:
+      - Retrieves energy–LET grid
+      - Computes specific energy and dose-averaged quantities
+      - Applies saturation correction and optional OSMK
+      - Aggregates into a structured table
 
-    :param ions: List of ion identifiers to compute. If None, all ions are used.
+    :param self: MKTable instance.
+    :type self: MKTable
+    :param ions: Ion identifiers to compute. If None, all available ions are used.
     :type ions: list[str or int], optional
-    :param energy: Optional custom energy grid for resampling.
+    :param energy: Custom energy grid for resampling (if any).
     :type energy: float or list or np.ndarray, optional
-    :param parallel: Enable parallel computation using multiple processes.
+    :param parallel: Whether to enable multiprocessing.
     :type parallel: bool
-    :param integration_method: Integration rule ('trapz', 'simps', or 'quad').
+    :param integration_method: Integration scheme ('trapz', 'simps', 'quad').
     :type integration_method: str
 
-    :raises RuntimeError: If MKTable is not properly initialized.
+    :raises RuntimeError: If MKTable is not initialized.
     """
     
     if not self.sp_table_set or not self.params:

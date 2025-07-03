@@ -4,7 +4,8 @@ Representation of stopping power data for individual ions.
 This module defines the :class:`StoppingPowerTable`, which stores and validates
 LET vs. energy curves for a given ion in liquid water.
 
-Features include:
+Main features
+-------------
 
 - Parsing from text files or dictionaries
 - Interpolation and resampling
@@ -12,6 +13,17 @@ Features include:
 - Metadata handling (Z, A, source, ionization potential)
 
 This class serves as the core data structure for model computations.
+
+Examples
+--------
+
+>>> from pymkm.io.stopping_power import StoppingPowerTable
+>>> spt = StoppingPowerTable.from_txt("defaults/mstar_3_12/Z06_A12_Carbon.txt")
+>>> spt.ion_symbol
+'C'
+>>> spt.energy[:3]
+array([1.0, 2.0, 3.0])
+>>> spt.plot(show=False)
 """
 
 from pathlib import Path
@@ -38,9 +50,13 @@ class StoppingPowerTable:
     @classmethod
     def get_lookup_table(cls) -> Dict[str, Dict[str, int]]:
         """
-        Retrieve the ion properties lookup table (https://ciaaw.org/atomic-weights.htm)
-        
-        :returns: A dictionary mapping element names to their properties (symbol, Z, A, color).
+        Retrieve the ion properties lookup table used to resolve ion metadata.
+    
+        The table maps element names (e.g., "Carbon") to their symbol, atomic number,
+        mass number, and display color. Based on IUPAC reference data from:
+        https://ciaaw.org/atomic-weights.htm
+    
+        :returns: A dictionary with element names as keys and their properties as nested dictionaries.
         :rtype: dict[str, dict[str, int]]
         """
         return load_lookup_table()
@@ -58,11 +74,11 @@ class StoppingPowerTable:
         :param let: Corresponding LET values in MeV/cm.
         :type let: np.ndarray
         :param mass_number: Optional mass number override.
-        :type mass_number: int, optional
+        :type mass_number: Optional[int]
         :param source_program: Optional name of the source that provided the data.
-        :type source_program: str, optional
+        :type source_program: Optional[str]
         :param ionization_potential: Optional ionization potential of the medium.
-        :type ionization_potential: float, optional
+        :type ionization_potential: Optional[float]
     
         :raises TypeError: If ion_input is not a valid type.
         :raises ValueError: If ion cannot be resolved in the lookup table.
@@ -198,7 +214,7 @@ class StoppingPowerTable:
         Plot stopping power (LET) as a function of energy.
     
         :param label: Optional label for the plot legend.
-        :type label: str, optional
+        :type label: Optional[str]
         :param show: Whether to call plt.show().
         :type show: bool
         :param new_figure: If True, create a new figure and title; otherwise, reuse the current axes.
@@ -244,9 +260,9 @@ class StoppingPowerTable:
         Delegates to `Interpolator` and supports log-log interpolation.
     
         :param energy: Energy values at which to compute LET.
-        :type energy: np.ndarray, optional
+        :type energy: Optional[np.ndarray]
         :param let: LET values at which to compute corresponding energies.
-        :type let: np.ndarray, optional
+        :type let: Optional[np.ndarray]
         :param loglog: Whether to perform interpolation in log-log space.
         :type loglog: bool
     

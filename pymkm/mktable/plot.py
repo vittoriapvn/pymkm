@@ -52,19 +52,23 @@ def plot(self: MKTable,
          y: str = "z_bar_star_domain", 
          verbose: bool = False):
     """
-    Plot microdosimetric quantities from the MKTable for one or more ions.
+    Plot microdosimetric quantities from the MKTable.
 
-    :param ions: List of ion identifiers (e.g., 'C', 6, 'Carbon'). If None, all ions are plotted.
+    Supported axes:
+      - x: 'energy' [MeV/u] or 'let' [MeV/cm]
+      - y: 'z_bar_star_domain', 'z_bar_domain', or 'z_bar_nucleus' [Gy] (z̄*, z̄_d, and z̄_n)
+
+    :param ions: List of ion identifiers (e.g., ‘C’, 6, ‘Carbon’). If None, all ions are plotted.
     :type ions: list[str or int], optional
     :param x: Quantity for the x-axis ('energy' or 'let').
     :type x: str
-    :param y: Quantity for the y-axis ('z_bar_star_domain', 'z_bar_domain', or 'z_bar_nucleus').
+    :param y: Quantity for the y-axis (must match a column in MKTable results).
     :type y: str
-    :param verbose: If True, displays model configuration details on the plot.
+    :param verbose: If True, display model and geometry parameters inside the plot.
     :type verbose: bool
 
-    :raises RuntimeError: If no results are available in MKTable.
-    :raises ValueError: If invalid column names are provided.
+    :raises RuntimeError: If MKTable has no computed results.
+    :raises ValueError: If x or y is invalid.
     """
     
     if not self.table:

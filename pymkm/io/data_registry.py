@@ -3,7 +3,7 @@ Discovery and loading of default stopping power data files.
 
 This module provides functions to:
 
-- Locate `.txt` files for specific ions and sources (e.g. mstar, geant4)
+- Locate `.txt` files for specific ions and sources (e.g.`mstar_3_12`, `geant4_11_3_0`, `fluka_2020_0`)
 - List available sources and files
 - Load the `elements.json` periodic table lookup used throughout pyMKM
 
