@@ -5,7 +5,7 @@ This module implements functions to compute:
 
 - Relative radioresistance :func:`compute_relative_radioresistance`
 - OSMK 2023 scaling factors :func:`compute_scaling_factors`
-- Oxygen-corrected alpha and beta LQ parameters for hypoxia
+- Oxygen-corrected α and β LQ parameters for hypoxia
 
 It supports both OSMK 2021 (γ, zR, Rm formulation) and OSMK 2023 (scaling model)
 based on microdosimetric specific energies and a parameter container.

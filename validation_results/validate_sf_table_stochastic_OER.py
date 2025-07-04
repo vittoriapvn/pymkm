@@ -20,7 +20,7 @@ def _compute_d10_pair(sf_table, Z, energy, let):
     surv = entry["data"]["survival_fraction"]
     return energy, let, dose, surv
 
-def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0", debug_one_pair: bool = False):
+def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0"):
     warnings.filterwarnings("ignore", category=UserWarning)
     base_dir = Path(__file__).resolve().parent / "sf_table_stochastic_OER"
     ref_dir = base_dir / "reference_data"
@@ -101,11 +101,8 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0", debug_one_pai
 
                         sf_hyp = build_sf_table(pO2)
                         energies = sp.energy
-                        LET_SCALING = 1.3 if metadata['Cell_Type'] == 'V79' else 1.0
                         lets = sp.let
                         pairs = list(zip(energies, lets))
-                        if debug_one_pair:
-                            pairs = [pairs[0]]
                         worker_count = optimal_worker_count(pairs)
 
                         with ProcessPoolExecutor(max_workers=worker_count) as executor:
@@ -139,13 +136,17 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0", debug_one_pai
 
                         plt.figure(figsize=(7, 5))
                         ax = plt.gca()
+
+                        # LET_SCALING = (4.0026032545 / 3.016029322) if Z == 2 else 1.0
+                        LET_SCALING = 1.30 if metadata['Cell_Type'] == 'V79' else 1.0
+                        # Add watermark if LET_SCALING != 1.0
                         if LET_SCALING != 1.0:
-                            ax.text(
-                                0.5, 0.5, f"LET scaled by {LET_SCALING}",
-                                transform=ax.transAxes,
-                                fontsize=30, color='gray', alpha=0.2,
-                                ha='center', va='center', rotation=30
-                            )
+                           ax.text(
+                               0.5, 0.5, f"LET scaled by {LET_SCALING:.2f}",
+                               transform=ax.transAxes,
+                               fontsize=30, color='gray', alpha=0.2,
+                               ha='center', va='center', rotation=30
+                           )
 
                         plt.plot(df_ref["x"]*LET_SCALING, df_ref["y"], '--', linewidth=2, color=color, label=metadata.get("Reference", "Reference"))
 
@@ -194,4 +195,11 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0", debug_one_pai
                         plt.pause(0.1)
 
 if __name__ == "__main__":
-    validate_sf_table_stochastic_OER(source="mstar_3_12", debug_one_pair=False)
+    validate_sf_table_stochastic_OER(source="mstar_3_12")
+    # validate_sf_table_stochastic_OER(source="fluka_2020_0")
+    # validate_sf_table_stochastic_OER(source="geant4_11_3_0")
+    
+    
+    
+    
+    

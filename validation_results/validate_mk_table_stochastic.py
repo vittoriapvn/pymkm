@@ -103,6 +103,6 @@ def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
         fig.savefig(fig_dir / f"z_bar_all_Z{Z}_{source}.png", dpi=300)
         
 if __name__ == "__main__":
+    validate_mk_table_stochastic(source="mstar_3_12")
     # validate_mk_table_stochastic(source="fluka_2020_0")
     # validate_mk_table_stochastic(source="geant4_11_3_0")
-    validate_mk_table_stochastic(source="mstar_3_12")

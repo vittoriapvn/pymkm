@@ -40,8 +40,7 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                 for txt_file in sorted(pO2_dir.glob("*.txt")):
                     metadata, df_ref = load_validation_file(txt_file)
                     Z = int(metadata["Atomic_Number"])
-                    LET_SCALING = 1.3 if metadata['Cell_Type'] == 'V79' else 1.0
-                    let_val = float(metadata["LET_MeV_cm"]) * LET_SCALING
+                    let_val = float(metadata["LET_MeV_cm"])
                     grouped_by_Z[Z].append((let_val, txt_file, metadata, df_ref))
 
                 for Z in sorted(grouped_by_Z):
@@ -55,14 +54,6 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                         axs = axs[0]
 
                         for ax_idx, ax in enumerate(axs):
-                            # Add watermark if LET_SCALING != 1.0
-                            if LET_SCALING != 1.0:
-                               ax.text(
-                                   0.5, 0.5, f"LET scaled by {LET_SCALING}",
-                                   transform=ax.transAxes,
-                                   fontsize=30, color='gray', alpha=0.2,
-                                   ha='center', va='center', rotation=30
-                               )
                             if entry_idx >= len(entries):
                                 ax.axis("off")
                                 continue
@@ -81,6 +72,18 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                             model_name = metadata["Model_Name"]
                             core_type = metadata["Core_Radius_Type"]
                             atomic_number = int(metadata["Atomic_Number"])
+                            
+                            # LET_SCALING = (4.0026032545 / 3.016029322) if atomic_number == 2 else 1.0
+                            LET_SCALING = 1.3 if metadata['Cell_Type'] == 'V79' else 1.0
+                            # Add watermark if LET_SCALING != 1.0
+                            if LET_SCALING != 1.0:
+                               ax.text(
+                                   0.5, 0.5, f"LET scaled by {LET_SCALING:.2f}",
+                                   transform=ax.transAxes,
+                                   fontsize=30, color='gray', alpha=0.2,
+                                   ha='center', va='center', rotation=30
+                               )
+
 
                             sp_table_set = StoppingPowerTableSet.from_default_source(source).filter_by_ions([Z])
 
@@ -121,6 +124,9 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                                 ))
 
                             sf_table = SFTable(parameters=SFTableParameters(**sf_kwargs))
+                            # Correct 4He let for mass(4He)/mass(3He)
+                            let_val *= LET_SCALING
+                            #
                             sf_table.compute(ion=atomic_number, let=let_val, force_recompute=True, apply_oxygen_effect=True)
 
                             color = sp_table_set.get(atomic_number).color
@@ -179,4 +185,7 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
 
 if __name__ == "__main__":
     validate_sf_table_stochastic_pO2(source="mstar_3_12")
+    # validate_sf_table_stochastic_pO2(source="fluka_2020_0")
+    # validate_sf_table_stochastic_pO2(source="geant4_11_3_0")
+
 

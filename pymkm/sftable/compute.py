@@ -1,8 +1,8 @@
 """
-Computation of survival fraction curves from microdosimetric input.
+Computation of survival fraction (SF) curves from microdosimetric input.
 
-This module defines the method :meth:`SFTable.compute`, which calculates survival
-fraction (SF) values over a dose grid based on results from an MKTable.
+This module defines the method :meth:`SFTable.compute`, which calculates SF
+values over a dose grid based on results from an MKTable.
 
 Supported models include:
 
@@ -11,8 +11,6 @@ Supported models include:
 - OSMK 2021/2023 (stochastic with oxygen correction)
 
 The method supports optional interpolation, recomputation, and model switching.
-Results are stored in :attr:`SFTable.table` as a list of survival fraction curves
-and associated metadata.
 """
 
 from .core import SFTable
@@ -47,32 +45,19 @@ def compute(
     :param ion: Ion name, symbol, or atomic number.
     :type ion: Union[str, int]
     :param energy: Kinetic energy per nucleon [MeV/u]. Interpolated if not provided.
-    :type energy: float, optional
+    :type energy: Optional[float]
     :param let: Linear energy transfer [MeV/cm]. Interpolated if not provided.
-    :type let: float, optional
+    :type let: Optional[float]
     :param force_recompute: If True, recomputes results even if cached data exist.
-    :type force_recompute: bool, optional
+    :type force_recompute: Optional[bool]
     :param model: Microdosimetric model to use: "classic" or "stochastic".
     :type model: Literal["classic", "stochastic"], optional
     :param apply_oxygen_effect: Whether to apply OSMK model. Ignored if model != "stochastic".
-    :type apply_oxygen_effect: bool, optional
+    :type apply_oxygen_effect: Optional[bool]
     
     :returns: None. Results are stored in ``self.table``.
     
     :raises ValueError: If inputs are inconsistent, or if required parameters are missing.
-    
-    .. note::
-    
-       The output is stored in ``self.table`` as a list of dictionaries. Each dictionary contains:
-    
-       - ``params``: a dict with keys ``ion``, ``energy``, ``let``, ``model``.
-       - ``calculation_info``: "computed" or "interpolated".
-       - ``data``: a pandas DataFrame with two columns:
-           - ``dose``: Dose grid [Gy].
-           - ``survival_fraction``: Survival probability at each dose.
-    
-       This attribute is overwritten each time ``compute()`` is called.
-       To visualize results, use the ``plot()`` method.
     """
    
     params = self.params 

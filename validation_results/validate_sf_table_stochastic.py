@@ -125,6 +125,6 @@ def validate_sf_table_stochastic(source: str = "fluka_2020_0"):
                 plt.pause(0.1)
 
 if __name__ == "__main__":
+    validate_sf_table_stochastic(source="mstar_3_12")
     # validate_sf_table_stochastic(source="fluka_2020_0")
     # validate_sf_table_stochastic(source="geant4_11_3_0")
-    validate_sf_table_stochastic(source="mstar_3_12")

@@ -46,72 +46,77 @@ def _validate_plot_columns(x: str, y: str):
         raise ValueError(f"Invalid y-axis: '{y}'. Allowed values are: {sorted(allowed_y)}")
 
 
-def plot(self: MKTable, 
-         ions: Optional[List[Union[str, int]]] = None, *, 
-         x: str = "energy", 
-         y: str = "z_bar_star_domain", 
-         verbose: bool = False):
+def plot(
+    self: MKTable,
+    ions: Optional[List[Union[str, int]]] = None,
+    *,
+    x: str = "energy",
+    y: str = "z_bar_star_domain",
+    verbose: bool = False,
+    ax: Optional[plt.Axes] = None,
+    show: Optional[bool] = True
+):
     """
     Plot microdosimetric quantities from the MKTable.
 
-    Supported axes:
-      - x: 'energy' [MeV/u] or 'let' [MeV/cm]
-      - y: 'z_bar_star_domain', 'z_bar_domain', or 'z_bar_nucleus' [Gy] (z̄*, z̄_d, and z̄_n)
-
-    :param ions: List of ion identifiers (e.g., ‘C’, 6, ‘Carbon’). If None, all ions are plotted.
+    :param ions: List of ions to plot. If None, all computed ions are used.
     :type ions: list[str or int], optional
-    :param x: Quantity for the x-axis ('energy' or 'let').
+    :param x: x-axis variable ('energy' or 'let').
     :type x: str
-    :param y: Quantity for the y-axis (must match a column in MKTable results).
+    :param y: y-axis variable ('z_bar_star_domain', 'z_bar_domain', 'z_bar_nucleus').
     :type y: str
-    :param verbose: If True, display model and geometry parameters inside the plot.
+    :param verbose: Show model configuration in the plot.
     :type verbose: bool
+    :param ax: Matplotlib Axes object to draw on. If None, a new figure is created.
+    :type ax: Optional[matplotlib.axes.Axes]
+    :param show: If True, displays the plot. Set False when embedding or scripting.
+    :type show: Optional[bool]
 
-    :raises RuntimeError: If MKTable has no computed results.
-    :raises ValueError: If x or y is invalid.
+    :raises RuntimeError: If table is empty.
+    :raises ValueError: If x or y are invalid.
     """
-    
     if not self.table:
-        raise RuntimeError("No computed results found. Please run 'compute()' before plotting.")
+        raise RuntimeError("No computed results found. Run `compute()` before plotting.")
 
     ions = ions or self.sp_table_set.get_available_ions()
     ions = [self.sp_table_set._map_to_fullname(ion) for ion in ions]
     _validate_plot_columns(x, y)
 
+    x_label_map = {"energy": "Energy [MeV/u]", "let": "LET [MeV/cm]"}
     y_label_map = {
-        "z_bar_star_domain": "$\\bar{z}^{*}$ [Gy]",
-        "z_bar_domain": "$\\bar{z}_{d}$ [Gy]",
-        "z_bar_nucleus": "$\\bar{z}_{n}$ [Gy]"
-    }
-    x_label_map = {
-        "energy": "Energy [MeV/u]",
-        "let": "LET [MeV/cm]"
+        "z_bar_star_domain": r"$\bar{z}^{*}$ [Gy]",
+        "z_bar_domain": r"$\bar{z}_d$ [Gy]",
+        "z_bar_nucleus": r"$\bar{z}_n$ [Gy]"
     }
 
-    x_min, x_max = np.inf, -np.inf
-    y_max = -np.inf
+    # Create figure/axes if not provided
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(12, 8))
+        created_fig = True
+
+    x_min, x_max, y_max = np.inf, -np.inf, -np.inf
     for ion in ions:
         df = self.table[ion]["data"]
         x_vals = df[x].values
         y_vals = df[y].values
-        x_min = min(x_min, np.min(x_vals))
-        x_max = max(x_max, np.max(x_vals))
-        y_max = max(y_max, np.max(y_vals))
+        x_min = min(x_min, x_vals.min())
+        x_max = max(x_max, x_vals.max())
+        y_max = max(y_max, y_vals.max())
 
-    plt.figure(figsize=(12, 8))
     for ion in ions:
         df = self.table[ion]["data"]
         ion_symbol = self.sp_table_set.get(ion).ion_symbol
         color = self.sp_table_set.get(ion).color
-        plt.plot(df[x], df[y], label=ion_symbol, color=color, alpha=0.5, linewidth=6)
+        ax.plot(df[x], df[y], label=ion_symbol, color=color, alpha=0.5, linewidth=6)
 
-    plt.xlabel(x_label_map.get(x, x.capitalize()))
-    plt.ylabel(y_label_map.get(y, y.replace('_', ' ').capitalize()))
-    plt.xscale("log" if x == "energy" else "linear")
-    plt.ylim(0, y_max * 1.05)
-    plt.xlim(x_min, x_max)
-    plt.grid(True, which='both', linestyle='--', alpha=0.1)
-    plt.legend()
+    ax.set_xlabel(x_label_map.get(x, x.capitalize()))
+    ax.set_ylabel(y_label_map.get(y, y.replace('_', ' ').capitalize()))
+    ax.set_xscale("log" if x == "energy" else "linear")
+    ax.set_xlim(x_min, x_max)
+    ax.set_ylim(0, y_max * 1.05)
+    ax.grid(True, which='both', linestyle='--', alpha=0.1)
+    ax.legend()
 
     if verbose:
         param_dict = vars(self.params)
@@ -119,21 +124,23 @@ def plot(self: MKTable,
             (r"$r_d$", param_dict["domain_radius"], "μm"),
             (r"$R_n$", param_dict["nucleus_radius"], "μm"),
         ]
-    
         if param_dict.get("z0") is not None:
             main_parameters.append((r"$z_0$", param_dict["z0"], "Gy"))
         if param_dict.get("beta0") is not None:
             main_parameters.append((r"$\beta_0$", param_dict["beta0"], "Gy⁻²"))
-            
-        model_version = f"Model: {self.model_version}"
-        info_lines = [model_version] + [f"{k}: {v} {unit}" for k, v, unit in main_parameters]
+
+        info_lines = [f"Model: {self.model_version}"] + [
+            f"{k}: {v:.3f} {unit}" for k, v, unit in main_parameters
+        ]
         info_text = "\n".join(info_lines)
-        ax = plt.gca()
+
         ax.text(0.05, 0.05, info_text, transform=ax.transAxes,
                 fontsize=14, verticalalignment='bottom', horizontalalignment='left',
                 bbox=dict(facecolor='white', alpha=0.85, edgecolor='black', boxstyle='round'))
-    plt.tight_layout()    
-    plt.show(block=False)
-    plt.pause(0.1)
+
+    if show and created_fig:
+        plt.tight_layout()
+        plt.show()
+
 
 MKTable.plot = plot

@@ -8,8 +8,7 @@ This module defines:
 - :class:`SFTable`: A computation manager that integrates MKTable results with
   biological model parameters to produce survival fraction outputs.
 
-The module supports OSMK 2021 and OSMK 2023 models, including automatic validation
-of inputs and display utilities.
+The module supports OSMK 2021 and OSMK 2023 models.
 """
 
 from dataclasses import dataclass, field
@@ -29,44 +28,44 @@ class SFTableParameters:
     :type mktable: pymkm.mktable.core.MKTable
 
     :param alpha0: Total linear coefficient α₀ in the LQ model [Gy⁻¹]. Required unless both `alphaL` and `alphaS` are provided.
-    :type alpha0: float, optional
+    :type alpha0: Optional[float]
 
     :param beta0: Quadratic coefficient β₀ in the LQ model [Gy⁻²]. If not provided, it is retrieved from `mktable.parameters`.
-    :type beta0: float, optional
+    :type beta0: Optional[float]
 
     :param dose_grid: Dose grid [Gy] over which to compute survival fractions. Defaults to np.arange(0, 15.5, 0.5).
-    :type dose_grid: np.ndarray, optional
+    :type dose_grid: Optional[np.ndarray]
 
     :param alphaL: Linear coefficient for lethal lesions [Gy⁻¹] (OSMK 2021/2023).
-    :type alphaL: float, optional
+    :type alphaL: Optional[float]
 
     :param alphaS: Linear coefficient for sublethal lesions [Gy⁻¹] (OSMK 2021/2023).
-    :type alphaS: float, optional
+    :type alphaS: Optional[float]
 
     :param zR: Radiation quality–dependent oxygen parameter [Gy] (OSMK 2021 only).
-    :type zR: float, optional
+    :type zR: Optional[float]
 
     :param gamma: Exponent for R_max(zd) expression (OSMK 2021 only).
-    :type gamma: float, optional
+    :type gamma: Optional[float]
 
     :param Rm: Minimum value of R_max (OSMK 2021 only).
-    :type Rm: float, optional
+    :type Rm: Optional[float]
 
     :param f_rd_max: Maximum domain radius scaling factor under hypoxia (OSMK 2023 only).
-    :type f_rd_max: float, optional
+    :type f_rd_max: Optional[float]
 
     :param f_z0_max: Maximum saturation parameter scaling factor under hypoxia (OSMK 2023 only).
-    :type f_z0_max: float, optional
+    :type f_z0_max: Optional[float]
 
     :param Rmax: Maximum radioresistance at pO₂ = 0 mmHg (OSMK 2023 only).
-    :type Rmax: float, optional
+    :type Rmax: Optional[float]
 
     :param K: Oxygen pressure [mmHg] at which R(pO₂) = (1 + Rmax)/2. Default is 3.0 (Inaniwa 2021).
-    :type K: float, optional
+    :type K: Optional[float]
 
     :param pO2: Oxygen partial pressure [mmHg] at which to evaluate the oxygen effect.
         Enables OSMK mode if set.
-    :type pO2: float, optional
+    :type pO2: Optional[float]
     """
 
     mktable: MKTable
@@ -174,7 +173,7 @@ class SFTable:
         """
         Initialize the SFTable with a set of biological and model parameters.
         
-        :param parameters: An SFTableParameters instance containing model, geometry, and oxygen settings.
+        :param parameters: An SFTableParameters instance containing model and oxygen settings.
         :type parameters: SFTableParameters
         """
         self.params = parameters

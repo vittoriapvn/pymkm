@@ -11,6 +11,28 @@ The typical workflow includes:
 - saturation correction and optional hypoxia adjustment
 - interactive visualization and export to clinical-compatible formats
 
+Each computed result is stored in the `self.table` dictionary with the structure:
+
+.. code-block:: python
+
+    MKTable.table = {
+        "C": {
+            "params": {...},                   # Input model parameters
+            "stopping_power_info": {...},     # Metadata (LET, Z, A, source...)
+            "data": pd.DataFrame([            # Main output table
+                {
+                    "energy": ...,            # [MeV/u]
+                    "let": ...,               # [MeV/cm]
+                    "z_bar_star_domain": ..., # [Gy]
+                    "z_bar_domain": ...,      # [Gy] (SMK only)
+                    "z_bar_nucleus": ...      # [Gy] (SMK only)
+                },
+                ...
+            ])
+        },
+        ...
+    }
+
 Modules
 -------
 

@@ -139,7 +139,7 @@ def validate_mk_table_classic_dose(source: str = "fluka_2020_0"):
     plt.pause(0.1)
 
 if __name__ == "__main__":
+    validate_mk_table_classic_dose(source="mstar_3_12")
     # validate_mk_table_classic_dose(source="fluka_2020_0")
     # validate_mk_table_classic_dose(source="geant4_11_3_0")
-    validate_mk_table_classic_dose(source="mstar_3_12")
 

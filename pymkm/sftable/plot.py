@@ -1,5 +1,5 @@
 """
-Plotting utilities for survival fraction curves.
+Plotting utilities for survival fraction (SF) curves.
 
 This module defines :meth:`SFTable.plot`, which visualizes survival fraction curves
 computed using MKM, SMK, or OSMK models for one or more ions.
@@ -22,17 +22,17 @@ plt.rcParams.update({
     "ytick.major.size": 5,
     "legend.fontsize": 14
 })
-
+from typing import Optional
 from .core import SFTable
 
-def plot(self, *, verbose: bool = False, let: float = None):
+def plot(self, *, verbose: Optional[bool] = False, let: Optional[float] = None):
     """
     Plot survival fraction curves stored in ``self.table``.
 
     :param verbose: If True, displays model parameters on the plot.
-    :type verbose: bool, optional
+    :type verbose: Optional[bool]
     :param let: LET value [MeV/cm] to filter the curves to plot. If None, all results are shown.
-    :type let: float, optional
+    :type let: Optional[float]
 
     :raises ValueError: If no results are available or no match is found for the specified LET.
     """

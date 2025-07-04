@@ -49,23 +49,34 @@ def validate_mk_table_classic(source: str = "fluka_2020_0"):
         mk_table.compute(ions=[atomic_number])
 
         # Plot model result using built-in method
-        mk_table.plot(ions=[atomic_number], x="energy", y="z_bar_star_domain", verbose=True)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        mk_table.plot(
+            ions=[atomic_number],
+            x="energy",
+            y="z_bar_star_domain",
+            verbose=True,
+            ax=ax,
+            show=False
+            )
 
-        plt.title(title, fontsize=14)
-
-        plt.plot(df_ref['x'], df_ref['y'], marker='o', linestyle='None', 
-                 markersize=9, markeredgewidth=0.8, markeredgecolor='black', alpha=0.7,
-                 label=label, color=sp_table_set.get(atomic_number).color)
-
-        # Save figure
-        plt.legend()
-        plt.tight_layout()
-        plot_file = figure_dir / f"z_bar_star_domain_Z{atomic_number}_{source}.png"
-        plt.savefig(plot_file, dpi=300)
-        plt.show(block=False)
-        plt.pause(0.1)
+        ax.plot(
+            df_ref['x'], df_ref['y'],
+            marker='o', linestyle='None',
+            markersize=9, markeredgewidth=0.8,
+            markeredgecolor='black', alpha=0.7,
+            label=label,
+            color=sp_table_set.get(atomic_number).color
+        )
         
+        ax.set_title(title, fontsize=14)
+        ax.legend(fontsize=12)
+        fig.tight_layout()
+        
+        plot_file = figure_dir / f"z_bar_star_domain_Z{atomic_number}_{source}.png"
+        fig.savefig(plot_file, dpi=300)
+        plt.close(fig)
+                
 if __name__ == "__main__":
-    validate_mk_table_classic(source="fluka_2020_0")
-    validate_mk_table_classic(source="geant4_11_3_0")
     validate_mk_table_classic(source="mstar_3_12")
+    # validate_mk_table_classic(source="fluka_2020_0")
+    # validate_mk_table_classic(source="geant4_11_3_0")
