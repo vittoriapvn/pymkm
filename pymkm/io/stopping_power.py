@@ -209,7 +209,12 @@ class StoppingPowerTable:
             ionization_potential=data.get("ionization_potential")
         )
 
-    def plot(self, label: Optional[str] = None, show: bool = True, new_figure: bool = True):
+    def plot(
+        self,
+        label: Optional[str] = None,
+        show: bool = True,
+        ax: Optional[plt.Axes] = None
+    ):
         """
         Plot stopping power (LET) as a function of energy.
     
@@ -217,23 +222,29 @@ class StoppingPowerTable:
         :type label: Optional[str]
         :param show: Whether to call plt.show().
         :type show: bool
-        :param new_figure: If True, create a new figure and title; otherwise, reuse the current axes.
-        :type new_figure: bool
+        :param ax: Matplotlib Axes object to draw on. If None, a new figure is created.
+        :type ax: Optional[matplotlib.axes.Axes]
         """
-        if new_figure:
-            plt.figure(figsize=(8, 5))
-            plt.title(f'{self.ion_symbol}: Stopping Power vs Energy')
+
+        # Create figure/axes if not provided
+        created_fig = False
+        if ax is None:
+            _, ax = plt.subplots()
+            ax.set_title(f'{self.ion_symbol}: Stopping Power vs Energy')
+            created_fig = True
+
         else:
-            if not plt.gca().get_title():
-                plt.title("Stopping Power vs Energy")
-        plt.plot(self.energy, self.let, label=label or self.ion_symbol, color=self.color, alpha=0.5, linewidth=6)
-        plt.xscale('log')
-        plt.xlabel('Energy [MeV/u]')
-        plt.ylabel('Stopping Power [MeV/cm]')
-        plt.grid(True)
-        plt.legend()
-        plt.tight_layout()
-        if show:
+            ax.set_title('Stopping Power vs Energy')
+
+        ax.plot(self.energy, self.let, label=label or self.ion_symbol, color=self.color, alpha=0.5, linewidth=6)
+        ax.set_xscale('log')
+        ax.set_xlabel('Energy [MeV/u]')
+        ax.set_ylabel('Stopping Power [MeV/cm]')
+        ax.grid(True)
+        ax.legend()
+
+        if show and created_fig:
+            plt.tight_layout()
             plt.show()
 
     def resample(self, new_grid: np.ndarray):

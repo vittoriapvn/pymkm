@@ -25,7 +25,13 @@ plt.rcParams.update({
 from typing import Optional
 from .core import SFTable
 
-def plot(self, *, verbose: Optional[bool] = False, let: Optional[float] = None):
+def plot(self,
+         *,
+         verbose: Optional[bool] = False,
+         let: Optional[float] = None,
+         ax: Optional[plt.Axes] = None,
+         show: Optional[bool] = True
+):
     """
     Plot survival fraction curves stored in ``self.table``.
 
@@ -33,6 +39,10 @@ def plot(self, *, verbose: Optional[bool] = False, let: Optional[float] = None):
     :type verbose: Optional[bool]
     :param let: LET value [MeV/cm] to filter the curves to plot. If None, all results are shown.
     :type let: Optional[float]
+    :param ax: Matplotlib Axes object to draw on. If None, a new figure is created.
+    :type ax: Optional[matplotlib.axes.Axes]
+    :param show: If True, displays the plot. Set False when embedding or scripting.
+    :type show: Optional[bool]
 
     :raises ValueError: If no results are available or no match is found for the specified LET.
     """
@@ -67,19 +77,24 @@ def plot(self, *, verbose: Optional[bool] = False, let: Optional[float] = None):
 
         color = self.params.mktable.sp_table_set.get(ion).color
 
-        plt.figure(figsize=(10, 6))
-        plt.plot(df["dose"], df["survival_fraction"],
+        # Create figure/axes if not provided
+        created_fig = False
+        if ax is None:
+            _, ax = plt.subplots()
+            created_fig = True
+
+        ax.plot(df["dose"], df["survival_fraction"],
                  label=f"{ion} | E={energy} MeV/u",
                  color=color, alpha=0.5, linewidth=6)
 
-        plt.xlabel("Dose [Gy]", fontsize=14)
-        plt.ylabel("Survival fraction", fontsize=14)
-        plt.title(f"Survival Curve\nLET = {let_val} MeV/cm | Model: {model}", fontsize=16)
-        plt.grid(True, linestyle='--', alpha=0.5)
-        plt.xlim(left=0)
-        plt.ylim(top=1)
-        plt.yscale("log")
-        plt.legend()
+        ax.set_xlabel("Dose [Gy]", fontsize=14)
+        ax.set_ylabel("Survival fraction", fontsize=14)
+        ax.set_title(f"Survival Curve\nLET = {let_val} MeV/cm | Model: {model}", fontsize=16)
+        ax.grid(True, linestyle='--', alpha=0.5)
+        ax.set_xlim(left=0)
+        ax.set_ylim(top=1)
+        ax.set_yscale("log")
+        ax.legend()
 
         if verbose and idx == 0:
             alpha0 = self.params.alpha0
@@ -98,12 +113,12 @@ def plot(self, *, verbose: Optional[bool] = False, let: Optional[float] = None):
                 f"{osmk_info}"
             )
 
-            ax = plt.gca()
             ax.text(0.05, 0.05, info_text, transform=ax.transAxes,
                     fontsize=12, verticalalignment='bottom', horizontalalignment='left',
                     bbox=dict(facecolor='white', alpha=0.8, edgecolor='black', boxstyle='round'))
 
-        plt.tight_layout()
-        plt.show()
+        if show and created_fig:
+            plt.tight_layout()
+            plt.show()
 
 SFTable.plot = plot

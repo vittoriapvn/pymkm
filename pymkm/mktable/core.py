@@ -508,7 +508,7 @@ class MKTable:
                         )
                 f.write("\n")
     
-        print(f"📝 Table written to: {path}")
+        print(f"\nTable written to: {path}")
     
         
         
