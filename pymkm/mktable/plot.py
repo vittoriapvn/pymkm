@@ -22,7 +22,7 @@ plt.rcParams.update({
     "xtick.major.size": 5,
     "ytick.major.size": 5,
     "legend.fontsize": 14,
-    "axes.titlesize": 16
+    "axes.titlesize": 12
 })
 import numpy as np
 
@@ -55,7 +55,8 @@ def plot(
     y: str = "z_bar_star_domain",
     verbose: bool = False,
     ax: Optional[plt.Axes] = None,
-    show: Optional[bool] = True
+    show: Optional[bool] = True,
+    title: Optional[bool] = False
 ):
     """
     Plot microdosimetric quantities from the MKTable.
@@ -72,6 +73,8 @@ def plot(
     :type ax: Optional[matplotlib.axes.Axes]
     :param show: If True, displays the plot. Set False when embedding or scripting.
     :type show: Optional[bool]
+    :param title: If True, displays includes a verbose title to the plot.
+    :type title: Optional[bool]
 
     :raises RuntimeError: If table is empty.
     :raises ValueError: If x or y are invalid.
@@ -93,7 +96,7 @@ def plot(
     # Create figure/axes if not provided
     created_fig = False
     if ax is None:
-        _, ax = plt.subplots(figsize=(12, 8))
+        _, ax = plt.subplots()
         created_fig = True
 
     x_min, x_max, y_max = np.inf, -np.inf, -np.inf
@@ -115,7 +118,9 @@ def plot(
 
     ax.set_xlabel(x_label_map.get(x, x.capitalize()))
     ax.set_ylabel(y_label_map.get(y, y.replace('_', ' ').capitalize()))
-    ax.set_title(plot_title, wrap=True)
+    if title:
+        plot_title = f"Source: {self.sp_table_set.source_info}, Track model: {self.params.model_name} (Core: {self.params.core_radius_type})"
+        ax.set_title(plot_title, wrap=True)
     ax.set_xscale("log" if x == "energy" else "linear")
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(0, y_max * 1.05)

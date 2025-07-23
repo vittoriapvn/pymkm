@@ -30,6 +30,7 @@ import json
 import os
 from typing import Dict, List, Optional
 import numpy as np
+import matplotlib.pyplot as plt
 
 from pymkm.io.stopping_power import StoppingPowerTable
 from pymkm.io.data_registry import list_available_defaults, get_default_txt_path
@@ -395,31 +396,45 @@ class StoppingPowerTableSet:
             for ion, table in self.tables.items()
         }
 
-    def plot(self, ions: Optional[List[str]] = None, show: bool = True, single_plot: bool = True):
+    def plot(self,
+             ions: Optional[List[str]] = None,
+             show: bool = True,
+             ax: Optional[plt.Axes] = None,
+             single_plot: bool = True
+        ):
         """
         Plot stopping power curves for one or more ions.
     
         :param ions: List of ion identifiers to plot. If None, all are plotted.
         :type ions: Optional[List[str]]
-        :param show: Whether to display the plot using plt.show().
+        :param show: Whether to call plt.show().
         :type show: bool
+        :param ax: Matplotlib Axes object to draw on. If None, a new figure is created.
+        :type ax: Optional[matplotlib.axes.Axes]
         :param single_plot: If True, plot all ions on one figure; otherwise, one figure per ion.
         :type single_plot: bool
         """
-        import matplotlib.pyplot as plt
-        ions_to_plot = ions if ions is not None else list(self.tables.keys())
+        ions_to_plot = ions if ions is not None else list(self.tables.keys())    
+
         if single_plot:
-            plt.figure(figsize=(8, 5))
+            
+            # Create figure/axes if not provided
+            created_fig = False
+            if ax is None:
+                _, ax = plt.subplots()
+                created_fig = True
+
             for ion in ions_to_plot:
                 table = self.get(ion)
                 if table is not None:
-                    table.plot(label=ion, show=False, new_figure=False)
-            plt.xlabel("Energy [MeV/u]")
-            plt.ylabel("Stopping Power [MeV/cm]")
-            plt.xscale("log")
-            plt.legend()
-            plt.grid(True)
-            if show:
+                    table.plot(label=ion, show=False, ax=ax)
+
+            ax.set_xlabel("Energy [MeV/u]")
+            ax.set_ylabel("Stopping Power [MeV/cm]")
+            ax.set_xscale("log")
+            ax.legend()
+            ax.grid(True)
+            if show and created_fig:
                 plt.show()
         else:
             for ion in ions_to_plot:
