@@ -362,7 +362,6 @@ def test_interpolate_empty_array():
 def test_plot_single(monkeypatch):
     ts = StoppingPowerTableSet()
     ts.add("Carbon", create_dummy_table("C"))
-    monkeypatch.setattr(plt, "figure", lambda *a, **kw: None)
     monkeypatch.setattr(plt, "show", lambda: None)
     ts.plot(ions=["Carbon"], show=True, single_plot=True)
 
@@ -370,13 +369,11 @@ def test_plot_multiple(monkeypatch):
     ts = StoppingPowerTableSet()
     ts.add("Carbon", create_dummy_table("C"))
     ts.add("Oxygen", create_dummy_table("O"))
-    monkeypatch.setattr(plt, "figure", lambda *a, **kw: None)
     monkeypatch.setattr(plt, "show", lambda: None)
     ts.plot(ions=["Carbon", "Oxygen"], show=True, single_plot=False)
 
 def test_plot_skips_missing(monkeypatch):
     ts = StoppingPowerTableSet()
     ts.add("Carbon", create_dummy_table("C"))
-    monkeypatch.setattr(plt, "figure", lambda *a, **kw: None)
     monkeypatch.setattr(plt, "show", lambda: None)
     ts.plot(ions=["Carbon", "Unknown"], show=True, single_plot=True)

@@ -440,4 +440,4 @@ class StoppingPowerTableSet:
             for ion in ions_to_plot:
                 table = self.get(ion)
                 if table is not None:
-                    table.plot(label=ion, show=show, new_figure=True)
+                    table.plot(label=ion, show=show)

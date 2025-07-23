@@ -92,7 +92,7 @@ def test_plot_runs(monkeypatch):
         show_called = True
 
     monkeypatch.setattr(plt, "show", fake_show)
-    table.plot(show=True, new_figure=True)
+    table.plot(show=True)
     assert show_called is True
 
 def test_plot_title_new_figure(monkeypatch):
@@ -101,7 +101,7 @@ def test_plot_title_new_figure(monkeypatch):
     table = StoppingPowerTable("C", energy, let)
     plt.close("all")
     monkeypatch.setattr(plt, "show", lambda: None)
-    table.plot(show=False, new_figure=True)
+    table.plot(show=False)
     title = plt.gca().get_title()
     expected = f"{table.ion_name}: Stopping Power vs Energy"
     assert title == expected
@@ -115,7 +115,7 @@ def test_plot_title_existing_figure(monkeypatch):
     ax = plt.gca()
     ax.set_title("")
     monkeypatch.setattr(plt, "show", lambda: None)
-    table.plot(show=False, new_figure=False)
+    table.plot(show=False, ax=ax)
     title = ax.get_title()
     expected = "Stopping Power vs Energy"
     assert title == expected
