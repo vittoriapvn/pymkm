@@ -230,7 +230,11 @@ class StoppingPowerTable:
         created_fig = False
         if ax is None:
             _, ax = plt.subplots()
+            ax.set_title(f'{self.ion_symbol}: Stopping Power vs Energy')
             created_fig = True
+
+        else:
+            ax.set_title('Stopping Power vs Energy')
 
         ax.plot(self.energy, self.let, label=label or self.ion_symbol, color=self.color, alpha=0.5, linewidth=6)
         ax.set_xscale('log')
