@@ -65,6 +65,8 @@ dmypy.json
 
 # Custom project files
 *.sh
+*.dot
+*.drawio
 build_and_verify.bat
 sync_dependencies_grep.py
 .spyproject/
