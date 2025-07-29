@@ -8,9 +8,18 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from validation_utils.layout import choose_horizontal_subplot_layout
 from validation_utils.loader import load_validation_file
+from validation_utils.metrics import log_linear_error_metrics
+
 from pymkm.mktable.core import MKTableParameters, MKTable
 from pymkm.sftable.core import SFTableParameters, SFTable
 from pymkm.io.table_set import StoppingPowerTableSet
+
+import locale
+locale.setlocale(locale.LC_ALL, '')
+csv_sep = ';' if locale.getlocale()[0] == 'Italian_Italy' else ','
+
+import numpy as np
+import pandas as pd
 
 def validate_sf_table_classic(source: str = "fluka_2020_0"):
     """
@@ -21,7 +30,10 @@ def validate_sf_table_classic(source: str = "fluka_2020_0"):
     ref_dir = base_dir / "reference_data"
     fig_dir = base_dir / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
-
+    metrics_dir = base_dir / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+    
+    error_records = []
     for cell_line in ["HSG", "V79"]:
         folder = ref_dir / cell_line
         grouped_by_Z = defaultdict(list)
@@ -90,6 +102,51 @@ def validate_sf_table_classic(source: str = "fluka_2020_0"):
                         line_style = '-' if idx == 0 else ':'
                         ax.plot(result["data"]["dose"], result["data"]["survival_fraction"], line_style, label=label, linewidth=6, alpha=0.4, color=color)
 
+                    if result["params"]["energy"] == result["params"]["energy"]:  # just to avoid duplicate entries
+                        try:
+                            # Reference curve
+                            x_ref = df_ref["x"].values
+                            y_ref = df_ref["y"].values
+                    
+                            # Model curve from pyMKM
+                            x_model = result["data"]["dose"]
+                            y_model = result["data"]["survival_fraction"]
+                    
+                            ref_idx = np.argsort(x_ref)
+                            model_idx = np.argsort(x_model)
+                            x_ref = x_ref[ref_idx]
+                            y_ref = y_ref[ref_idx]
+                            x_model = x_model[model_idx]
+                            y_model = y_model[model_idx]
+                    
+                            metrics = log_linear_error_metrics(
+                                x_ref=np.array(x_ref),
+                                y_ref=np.array(y_ref),
+                                x_model=np.array(x_model),
+                                y_model=np.array(y_model)
+                                )
+                        
+                            print(f"{cell_line}, Z = {Z}, LET = {let_val:.1f} | SMAPE_log = {metrics['smape_log']:.2f}%, "
+                                  f"MeanLogError = {metrics['mean_log_error']:.3f}")
+                    
+                        except Exception as e:
+                            print(f"{cell_line}, Z = {Z}, LET = {let_val:.1f} | Error during comparison: {type(e).__name__} - {e}")
+                            metrics = {k: float('nan') for k in ['mean_log_error', 'rms_log_error', 'max_log_error', 'smape_log']}
+                    
+                        error_records.append({
+                            'cell_line': cell_line,
+                            'Z': Z,
+                            'LET_MeV_cm': let_val,
+                            'model': model_name,
+                            'core_radius_type': core_type,
+                            'domain_radius_um': domain_radius,
+                            'nucleus_radius_um': nucleus_radius,
+                            'MeanLogError': metrics['mean_log_error'],
+                            'RMSLogError': metrics['rms_log_error'],
+                            'MaxLogError': metrics['max_log_error'],
+                            'SMAPE_log_percent': metrics['smape_log']
+                        })
+
                     ax.set_xlim(0, 10)
                     ax.set_ylim(1e-4, 1)
                     ax.set_yscale("log")
@@ -123,6 +180,11 @@ def validate_sf_table_classic(source: str = "fluka_2020_0"):
                 fig_path = fig_dir / f"{cell_line}_Z{Z}_{source}.png"
                 fig.savefig(fig_path, dpi=300)
                 plt.pause(0.1)
+                
+    log_path = metrics_dir / f"sf_table_classic_metrics_{source}.csv"
+    df_errors = pd.DataFrame(error_records)
+    df_errors.to_csv(log_path, sep=csv_sep, index=False)
+    print(f"\nSaved survival curve metrics to: {log_path}")
 
 if __name__ == "__main__":
     validate_sf_table_classic(source="mstar_3_12")

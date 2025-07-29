@@ -2,13 +2,20 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import sys
 
+import locale
+locale.setlocale(locale.LC_ALL, '')  # Set locale from environment
+csv_sep = ';' if locale.getlocale()[0] == 'Italian_Italy' else ','
+
 # Access to local modules
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from validation_utils.loader import load_validation_file
 from validation_utils.layout import choose_horizontal_subplot_layout
+from validation_utils.metrics import log_error_metrics
 from pymkm.physics.particle_track import ParticleTrack
 from pymkm.physics.specific_energy import SpecificEnergy
+
+import pandas as pd
 
 def validate_specific_energy():
     """
@@ -33,11 +40,14 @@ def validate_specific_energy():
     data_dir = Path(__file__).resolve().parent / "specific_energy" / "reference_data"
     figure_dir = Path(__file__).resolve().parent / "specific_energy" / "figures"
     figure_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = Path(__file__).resolve().parent / "specific_energy" / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
 
     files = sorted(data_dir.glob("*.txt"))
     layouts = choose_horizontal_subplot_layout(len(files), max_cols_per_fig=3)
 
     file_idx = 0
+    error_records = []
     for fig_idx, (n_rows, n_cols) in enumerate(layouts):
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 4))
         import numpy as np
@@ -73,6 +83,38 @@ def validate_specific_energy():
             # Compute model prediction
             model_z, model_b, elapsed = se.single_event_specific_energy(parallel=False, return_time=True)
             print(f"Execution time: {elapsed:.4f} seconds")
+            
+            # Compute mean log error between model and reference (interpolated on x_ref)
+            try:
+                x_ref = np.asarray(df['x'].values, dtype=float).flatten()
+                y_ref = np.asarray(df['y'].values, dtype=float).flatten()
+                x_model = np.asarray(model_b, dtype=float).flatten()
+                y_model = np.asarray(model_z, dtype=float).flatten()
+            
+                metrics = log_error_metrics(x_ref, y_ref, x_model, y_model)
+                print(f"{file.name} | Errors (log10): "
+                      f"mean={metrics['mean_log_error']:.3f}, "
+                      f"rms={metrics['rms_log_error']:.3f}, "
+                      f"max={metrics['max_log_error']:.3f}, "
+                      f"SMAPE={metrics['smape_log']:.2f}%")
+            except Exception as e:
+                print(f"{file.name} | Error during comparison: {e}")
+                metrics = {k: np.nan for k in ['mean_log_error', 'rms_log_error', 'max_log_error', 'smape_log']}
+            
+            # Save results to error log
+            error_records.append({
+                'filename': file.name,
+                'energy_MeV_u': energy,
+                'atomic_number': atomic_number,
+                'LET_MeV_cm': let,
+                'model': model_name,
+                'core_radius_type': core_type,
+                'region_radius_um': region_radius,
+                'MeanLogError_log10': metrics['mean_log_error'],
+                'RMSLogError_log10': metrics['rms_log_error'],
+                'MaxLogError_log10': metrics['max_log_error'],
+                'SMAPE_log_percent': metrics['smape_log']
+            })
 
             # Plot
             ax = axes[i] if n_cols > 1 else axes[0]
@@ -108,6 +150,12 @@ def validate_specific_energy():
         fig.savefig(figure_dir / f"specific_energy_subplot_{fig_idx+1}.png", dpi=300)
         plt.show(block=False)
         plt.pause(0.1)
+        
+        # Save all quantitative results to CSV log file
+        log_path = metrics_dir / "specific_energy_metrics.csv"
+        df_errors = pd.DataFrame(error_records)
+        df_errors.to_csv(log_path, sep=csv_sep, index=False)
+        print(f"\nSaved validation metrics to: {log_path}")
 
 if __name__ == "__main__":
     validate_specific_energy()

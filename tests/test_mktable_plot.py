@@ -133,3 +133,12 @@ def test_plot_verbose_box_display(monkeypatch):
 
     mk_table.plot(x="energy", y="z_bar_star_domain", verbose=True)
     plt.close()
+
+@pytest.mark.filterwarnings("ignore:FigureCanvasAgg is non-interactive.*")
+def test_plot_with_title_sets_title(fast_computed_mktable):
+    """Test that the title is set when `title=True` is passed."""
+    fig, ax = plt.subplots()
+    fast_computed_mktable.plot(x="energy", y="z_bar_star_domain", title=True, ax=ax, show=False)
+    
+    assert ax.get_title() != "", "Title was expected to be set but was empty"
+    plt.close(fig)

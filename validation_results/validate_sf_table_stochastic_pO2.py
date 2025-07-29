@@ -9,9 +9,18 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from validation_utils.layout import choose_horizontal_subplot_layout
 from validation_utils.loader import load_validation_file
+from validation_utils.metrics import log_linear_error_metrics
+
 from pymkm.mktable.core import MKTableParameters, MKTable
 from pymkm.sftable.core import SFTableParameters, SFTable
 from pymkm.io.table_set import StoppingPowerTableSet
+
+import locale
+locale.setlocale(locale.LC_ALL, '')
+csv_sep = ';' if locale.getlocale()[0] == 'Italian_Italy' else ','
+
+import numpy as np
+import pandas as pd
 
 def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
     """
@@ -22,7 +31,10 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
     ref_dir = base_dir / "reference_data"
     fig_dir = base_dir / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = base_dir / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
 
+    error_records = []
     for osmk_version in ["2021", "2023"]:
         version_dir = ref_dir / osmk_version
         if not version_dir.exists():
@@ -139,6 +151,46 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                                 line_style = '-' if idx == 0 else ':'
                                 ax.plot(result["data"]["dose"], result["data"]["survival_fraction"], line_style, label=label, linewidth=6, alpha=0.4, color=color)
 
+                                if idx == 0:
+                                    try:
+                                        x_ref = np.asarray(df_ref["x"].values, dtype=float)
+                                        y_ref = np.asarray(df_ref["y"].values, dtype=float)
+                                        x_model = np.asarray(result["data"]["dose"])
+                                        y_model = np.asarray(result["data"]["survival_fraction"])
+                                
+                                        x_ref, y_ref = zip(*sorted(zip(x_ref, y_ref)))
+                                        x_model, y_model = zip(*sorted(zip(x_model, y_model)))
+                                
+                                        metrics = log_linear_error_metrics(
+                                            x_ref=np.array(x_ref),
+                                            y_ref=np.array(y_ref),
+                                            x_model=np.array(x_model),
+                                            y_model=np.array(y_model)
+                                        )
+                                
+                                        print(f"O2-SF: Cell = {metadata['Cell_Type']}, Z = {Z}, pO₂ = {pO2:.1f} | SMAPE = {metrics['smape_log']:.2f} %")
+                                
+                                    except Exception as e:
+                                        print(f"Error SF metric @ Cell = {metadata['Cell_Type']}, Z = {Z}, pO₂ = {pO2:.1f}: {type(e).__name__} - {e}")
+                                        metrics = {k: float('nan') for k in ['mean_log_error', 'rms_log_error', 'max_log_error', 'smape_log']}
+                                
+                                    error_records.append({
+                                        'cell_type': metadata['Cell_Type'],
+                                        'Z': Z,
+                                        'pO2_mmHg': pO2,
+                                        'model': model_name,
+                                        'core_radius_type': core_type,
+                                        'domain_radius_um': domain_radius,
+                                        'nucleus_radius_um': nucleus_radius,
+                                        'osmk_version': osmk_version,
+                                        'LET_scaling': LET_SCALING,
+                                        'LET_MeV_cm': let_val,
+                                        'MeanLogError': metrics['mean_log_error'],
+                                        'RMSLogError': metrics['rms_log_error'],
+                                        'MaxLogError': metrics['max_log_error'],
+                                        'SMAPE_log_percent': metrics['smape_log']
+                                    })
+
                             ax.set_xlim(0, 10)
                             ax.set_ylim(1e-4, 1)
                             ax.set_yscale("log")
@@ -182,6 +234,12 @@ def validate_sf_table_stochastic_pO2(source: str = "fluka_2020_0"):
                         fig_path = fig_dir / fig_name
                         fig.savefig(fig_path, dpi=300)
                         plt.pause(0.1)
+                        
+    log_path = metrics_dir / f"sf_table_stochastic_pO2_metrics_{source}.csv"
+    df_errors = pd.DataFrame(error_records)
+    df_errors.to_csv(log_path, sep=csv_sep, index=False)
+    print(f"\nSaved O₂ survival metrics to: {log_path}")
+
 
 if __name__ == "__main__":
     validate_sf_table_stochastic_pO2(source="mstar_3_12")

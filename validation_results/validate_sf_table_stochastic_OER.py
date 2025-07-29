@@ -11,6 +11,14 @@ import warnings
 from tqdm import tqdm
 from validation_utils.loader import load_validation_file
 from validation_utils.inverse_dose import inverse_dose_from_survival
+from validation_utils.metrics import semi_log_error_metrics
+
+import locale
+locale.setlocale(locale.LC_ALL, '')
+csv_sep = ';' if locale.getlocale()[0] == 'Italian_Italy' else ','
+
+import numpy as np
+import pandas as pd
 
 def _compute_d10_pair(sf_table, Z, energy, let):
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -26,7 +34,10 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0"):
     ref_dir = base_dir / "reference_data"
     fig_dir = base_dir / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = base_dir / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
 
+    error_records = []
     for osmk_version in ["2021", "2023"]:
         version_dir = ref_dir / osmk_version
         if not version_dir.exists():
@@ -154,6 +165,44 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0"):
                         model_suffix = f"- OSMK-{osmk_version}"
                         label = (f"{ion_symbol} (pyMKM {model_suffix})")
                         plt.plot(LET_vals, OER_vals, '-', linewidth=6, color=color, alpha=0.4, label=label)
+                        
+                        try:
+                            x_model = np.array(LET_vals)
+                            y_model = np.array(OER_vals)
+                            x_ref = df_ref["x"].to_numpy() * LET_SCALING
+                            y_ref = df_ref["y"].to_numpy()
+                        
+                            x_model, y_model = zip(*sorted(zip(x_model, y_model)))
+                            x_ref, y_ref = zip(*sorted(zip(x_ref, y_ref)))
+                        
+                            metrics = semi_log_error_metrics(
+                                x_ref=np.array(x_ref),
+                                y_ref=np.array(y_ref),
+                                x_model=np.array(x_model),
+                                y_model=np.array(y_model)
+                            )
+                        
+                            print(f"OER Z={Z}, {metadata['Cell_Type']}, pO₂={pO2:.1f} | SMAPE = {metrics['smape_percent']:.2f}%")
+                        
+                        except Exception as e:
+                            print(f"OER Z={Z}, {metadata['Cell_Type']}, pO₂={pO2:.1f} | Error: {type(e).__name__} - {e}")
+                            metrics = {k: float('nan') for k in ['mean_abs_error', 'rms_error', 'max_abs_error', 'smape_percent']}
+
+                        error_records.append({
+                            'cell_type': metadata['Cell_Type'],
+                            'Z': Z,
+                            'pO2_mmHg': pO2,
+                            'model': model_name,
+                            'core_radius_type': core_type,
+                            'domain_radius_um': domain_radius,
+                            'nucleus_radius_um': nucleus_radius,
+                            'osmk_version': osmk_version,
+                            'LET_scaling': LET_SCALING,
+                            'MeanAbsError': metrics['mean_abs_error'],
+                            'RMS_Error': metrics['rms_error'],
+                            'MaxAbsError': metrics['max_abs_error'],
+                            'SMAPE_percent': metrics['smape_percent']
+                        })
 
                         plt.xscale("log")
                         plt.yscale("linear")
@@ -193,6 +242,12 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0"):
                         fig_path = fig_dir / f"OER_curve_{cell_type}_Z{Z}_pO2_{int(pO2)}_{source}_v{osmk_version}.png"
                         plt.savefig(fig_path, dpi=300)
                         plt.pause(0.1)
+                        
+    log_path = metrics_dir / f"sf_table_stochastic_OER_metrics_{source}.csv"
+    df_errors = pd.DataFrame(error_records)
+    df_errors.to_csv(log_path, sep=csv_sep, index=False)
+    print(f"\nSaved OER metrics to: {log_path}")
+
 
 if __name__ == "__main__":
     validate_sf_table_stochastic_OER(source="mstar_3_12")

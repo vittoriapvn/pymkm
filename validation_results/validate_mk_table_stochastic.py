@@ -6,8 +6,17 @@ import sys
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from validation_utils.loader import load_validation_file
+from validation_utils.metrics import semi_log_error_metrics
+
 from pymkm.mktable.core import MKTableParameters, MKTable
 from pymkm.io.table_set import StoppingPowerTableSet
+
+import pandas as pd
+import numpy as np
+import locale
+
+locale.setlocale(locale.LC_ALL, '')
+csv_sep = ';' if locale.getlocale()[0] == 'Italian_Italy' else ','
 
 def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
     """
@@ -18,6 +27,9 @@ def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
     ref_dir = base_dir / "reference_data"
     fig_dir = base_dir / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = base_dir / "metrics"
+    metrics_dir.mkdir(parents=True, exist_ok=True)
+
 
     subfolders = {
         "domain": "mk_table_avg_domain",
@@ -35,6 +47,7 @@ def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
                 reference_data[Z] = {}
             reference_data[Z][key] = txt_file
 
+    error_records = []
     for Z, files in sorted(reference_data.items()):
         metadata, _ = load_validation_file(files["domain"])
         
@@ -80,6 +93,35 @@ def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
             x_model = df_model["energy"]
             y_model = df_model[keys[key]]
             
+            sorted_ref_idx = np.argsort(df_ref['x'].values)
+            x_ref = df_ref['x'].values[sorted_ref_idx]
+            y_ref = df_ref['y'].values[sorted_ref_idx]
+            
+            sorted_model_idx = np.argsort(x_model.values)
+            x_model_sorted = x_model.values[sorted_model_idx]
+            y_model_sorted = y_model.values[sorted_model_idx]
+            
+            try:
+                metrics = semi_log_error_metrics(x_ref, y_ref, x_model_sorted, y_model_sorted)
+                print(f"Z = {Z}, {key} | SMAPE = {metrics['smape_percent']:.2f} %")
+            except Exception as e:
+                print(f"Z = {Z}, {key} | Error: {type(e).__name__} - {e}")
+                metrics = {k: float('nan') for k in ['mean_abs_error', 'rms_error', 'max_abs_error', 'smape_percent']}
+
+            error_records.append({
+                'Z': Z,
+                'quantity': key,
+                'model': model_name,
+                'core_radius_type': core_type,
+                'domain_radius_um': domain_radius,
+                'nucleus_radius_um': nucleus_radius,
+                'source': source,
+                'MeanAbsError': metrics['mean_abs_error'],
+                'RMS_Error': metrics['rms_error'],
+                'MaxAbsError': metrics['max_abs_error'],
+                'SMAPE_percent': metrics['smape_percent']
+            })
+            
             color = mk_table.sp_table_set.get(atomic_number).color
             ax.plot(x_model, y_model, label=f"pyMKM (Z = {atomic_number})", color=color, alpha=0.5, linewidth=6)
             ax.plot(df_ref['x'], df_ref['y'], marker='o', linestyle='None', 
@@ -101,6 +143,11 @@ def validate_mk_table_stochastic(source: str = "fluka_2020_0"):
 
         fig.tight_layout(rect=[0, 0, 1, 0.95])
         fig.savefig(fig_dir / f"z_bar_all_Z{Z}_{source}.png", dpi=300)
+        
+    log_path = metrics_dir / f"mk_table_stochastic_metrics_{source}.csv"
+    df_errors = pd.DataFrame(error_records)
+    df_errors.to_csv(log_path, sep=csv_sep, index=False)
+    print(f"\nSaved validation metrics to: {log_path}")
         
 if __name__ == "__main__":
     validate_mk_table_stochastic(source="mstar_3_12")

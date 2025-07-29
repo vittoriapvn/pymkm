@@ -1,30 +1,35 @@
-# pyMKM
+# 🧬 pyMKM
 
 [![CI](https://github.com/BeppeMagro/pymkm/actions/workflows/ci.yml/badge.svg)](https://github.com/BeppeMagro/pymkm/actions)
 [![Docs](https://img.shields.io/badge/docs-online-success)](https://beppemagro.github.io/pymkm/)
 [![Deploy Docs](https://github.com/BeppeMagro/pymkm/actions/workflows/gh-pages.yml/badge.svg)](https://github.com/BeppeMagro/pymkm/actions/workflows/gh-pages.yml)
 [![TestPyPI](https://img.shields.io/badge/TestPyPI-pymkm-blue)](https://test.pypi.org/project/pymkm/)
 
-`pyMKM` is an open-source Python package for computing microdosimetric quantities using MKM, SMK, and OSMK models.  
-It is designed for use in radiobiology research and clinical applications in hadrontherapy.
+**pyMKM** is an open-source Python package for the computation of microdosimetric quantities and cell survival predictions based on the **Microdosimetric Kinetic Model (MKM)**, its **stochastic extension (SMK)**, and its **oxygen-aware version (OSMK)**.
 
-📘 **[View the full documentation here](https://beppemagro.github.io/pymkm/)**
+It is intended for use in radiobiology research, Monte Carlo-based dosimetry, and biologically guided treatment planning in hadrontherapy.
+
+📘 **[Official Documentation](https://beppemagro.github.io/pymkm/)**  
+📝 **[Paper (draft)](---)**
 
 ---
 
 ## 📦 Features
 
-- Dose and LET-based microdosimetric modeling
-- MKM, SMK, and OSMK formulations
-- Support for amorphous track structure models (Kiefer-Chatterjee, Scholz-Kraft)
-- Automatic table generation for survival calculation
-- Full test coverage with `pytest`
+- 🔬 Full support for MKM, SMK, and OSMK (2021 & 2023 versions)
+- 📈 Dose-averaged microdosimetric table generation
+- 🎯 Event-by-event stochastic modeling of survival
+- 🧪 Oxygen effect corrections with LET or event scaling
+- 📐 Track structure models: Kiefer–Chatterjee and Scholz–Kraft
+- 📊 Validated on 150+ datasets from H, He, C, Ne ions
+- ⚙️ Modular architecture, parallelizable computation
+- ✅ 100% test coverage, cross-version CI (Python 3.9–3.12)
 
 ---
 
 ## 📥 Installation
 
-From PyPI:
+From PyPI (coming soon):
 
 ```bash
 pip install pymkm
@@ -40,47 +45,93 @@ pip install -e .[dev]
 
 ---
 
-## 🧪 Testing
+## 🧪 Quick Start
 
-To run tests and measure code coverage:
+```python
+from pymkm.mktable import MKTable, MKTableParameters
 
-```bash
-run_tests.bat
+## Select input parameters for specific energy tables generation
+atomic_numbers = [2, 6, 8] # He, C, O
+source = "mstar_3_12" # Source code used to generate stopping power tables (available with pymkm: fluka_2020_0, geant4_11_3_0 or mstar_3_12)
+domain_radius = 0.32 # μm
+nucleus_radius = 3.9 # μm
+alpha0 = 0.12 # 1/Gy
+beta0 = 0.0615 # 1/Gy^2
+
+## Load stopping power tables
+sp_table_set = StoppingPowerTableSet.from_default_source(source).filter_by_ions(atomic_numbers)
+
+## Store input parameters
+params = MKTableParameters(
+    domain_radius=domain_radius,
+    nucleus_radius=nucleus_radius,
+    beta0=beta0,
+    )
+
+## Generate specific energy table
+mk_table = MKTable(parameters=params, sp_table_set=sp_table_set)
+mk_table.compute(ions=atomic_numbers, parallel=True)
+
+## Plot specific energies result using built-in method
+mk_table.plot(ions=atomic_numbers, x="energy", y="z_bar_star_domain", verbose=True)
+
+## Write the MKTable to a .txt file
+path = "./MKM_table.txt"
+params = {
+    "CellType": cell_type,
+    "Alpha_0": alpha0,
+    "Beta": beta0
+    }
+mk_table.write_txt(params=params, filename=path)
 ```
+
+More examples available in the `examples/` folder and documentation.
 
 ---
 
-## 📂 Project structure
+## 📂 Project Structure
 
 ```text
-pymkm/                  # Main package
-  ├── biology/          # Oxygen effects and biological corrections
-  ├── data/             # Stopping power and ion tables
-  ├── io/               # Data registry and file loading
-  ├── mktable/          # MKM and SMK table generation
-  ├── physics/          # Particle tracks and specific energy
-  ├── sftable/          # Survival fraction calculations
-  ├── utils/            # Geometry tools, interpolation, parallelism
-tests/                  # Full test suite (not installed)
-examples/               # Usage examples (not installed)
-validation_results/     # Model benchmarks (not installed)
+pymkm/
+├── biology/       # OSMK oxygen effects and modulation
+├── data/          # Ion tables and stopping powers
+├── io/            # Data registry and loaders
+├── mktable/       # MKM/SMK microdosimetric table computation
+├── physics/       # Track structure and dose integration
+├── sftable/       # Survival curve computations
+├── utils/         # Geometry, interpolation, parallelism
+tests/             # Unit and integration tests
+examples/          # Demonstration scripts
+validation_results/ # Validation datasets and figures
 ```
 
 ---
 
-## 📄 License
+## 🧪 Testing
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+```bash
+pytest
+```
+
+All modules are covered by tests and validated with published benchmark data.  
+Continuous integration is provided via GitHub Actions.
 
 ---
 
 ## 📖 Citation
 
-If you use this software in your research, please cite:
+If you use `pyMKM` in your research, please cite:
 
-> Magro G., Pavanello V., Mairani A.  
-> *pyMKM: Microdosimetric Kinetic Model utilities for radiobiology research and hadrontherapy.*  
-> GitHub repository: [pymkm](https://github.com/BeppeMagro/pymkm)
+> Magro G., Pavanello V., Jia Y., Grevillot L., Glimelius L., Mairani A.  
+> **pyMKM: An Open-Source Python Package for Microdosimetric Kinetic Model Calculation in Research and Clinical Applications**  
+> GitHub: https://github.com/BeppeMagro/pymkm
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** (for code) and **CC BY 4.0** (for scientific content).  
+See the [LICENSE](LICENSE) file for more details.
 
 ---
 
@@ -92,6 +143,6 @@ This work was funded by the National Plan for NRRP Complementary Investments (PN
 
 ## 🌐 Links
 
-- 📘 Documentation: [https://beppemagro.github.io/pymkm/](https://beppemagro.github.io/pymkm/)
-- 🧪 Test results: via GitHub Actions
-- 💬 Issues: [GitHub Issues](https://github.com/BeppeMagro/pymkm/issues)
+- 📘 Docs: [https://beppemagro.github.io/pymkm/](https://beppemagro.github.io/pymkm/)
+- 🔬 Article: [---](---)
+- 💬 Issues: [https://github.com/BeppeMagro/pymkm/issues](https://github.com/BeppeMagro/pymkm/issues)
