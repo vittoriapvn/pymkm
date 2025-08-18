@@ -231,7 +231,7 @@ def test_write_txt_smk_beta_both_provided(tmp_path):
     )
     assert path.exists()
     assert "Beta0 0.060" in path.read_text()
-    assert "Fragment Carbon" in path.read_text()
+    assert "Fragment C" in path.read_text()
 
 
 def test_write_txt_smk_beta_only_in_dict(tmp_path):
@@ -303,7 +303,7 @@ def test_write_txt_scale_factor_warning(tmp_path):
         max_atomic_number=6
     )
     assert path.exists()
-    assert "Fragment Carbon" in path.read_text()
+    assert "Fragment C" in path.read_text()
 
 def test_write_txt_classic(tmp_path):
     params = MKTableParameters(domain_radius=0.3, nucleus_radius=5.0, beta0=0.06)
@@ -327,7 +327,7 @@ def test_write_txt_classic(tmp_path):
     content = path.read_text()
     assert "Parameter Alpha_0 0.100" in content
     assert "Parameter Beta 0.060" in content
-    assert "Fragment Carbon" in content
+    assert "Fragment C" in content
 
 def test_write_txt_raises_if_table_empty():
     params = MKTableParameters(domain_radius=0.3, nucleus_radius=5.0, beta0=0.05)
