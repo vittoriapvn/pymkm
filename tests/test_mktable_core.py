@@ -213,7 +213,7 @@ def test_write_txt_smk_beta_both_provided(tmp_path):
         "z_bar_nucleus": [0.3]
     })
     table.table["Carbon"] = {
-        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water"},
+        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water", "ion_symbol": "C"},
         "params": {},
         "data": df
     }
@@ -291,7 +291,7 @@ def test_write_txt_scale_factor_warning(tmp_path):
         "z_bar_nucleus": [0.3]
     })
     table.table["Carbon"] = {
-        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water"},
+        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water", "ion_symbol": "C"},
         "params": {},
         "data": df
     }
@@ -313,7 +313,7 @@ def test_write_txt_classic(tmp_path):
         "z_bar_star_domain": [0.2]
     })
     table.table["Carbon"] = {
-        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water"},
+        "stopping_power_info": {"atomic_number": 6, "source": "mock", "target": "water", "ion_symbol": "C"},
         "params": {},
         "data": df
     }
