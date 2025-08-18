@@ -207,7 +207,7 @@ def validate_sf_table_stochastic_OER(source: str = "fluka_2020_0"):
                         plt.xscale("log")
                         plt.yscale("linear")
                         plt.xlim(1E2, 1E4)
-                        plt.ylim(1.0, 4.0)
+                        plt.ylim(1.0, max(OER_vals) * 1.1)
                         plt.xlabel("dose-averaged LET [MeV/cm]")
                         plt.ylabel("OER (10% Survival)")
 

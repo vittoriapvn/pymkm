@@ -67,7 +67,7 @@ def main():
         ax.scatter(
             energies, np.full_like(energies, sp_val),
             marker='s', facecolor='none', edgecolor=table.color, s=100, linewidths=1.8,
-            label=f"Interpolated energy points" if isfirstInterapolation else None
+            label="Interpolated energy points" if isfirstInterapolation else None
         )
         isfirstInterapolation = True
 
