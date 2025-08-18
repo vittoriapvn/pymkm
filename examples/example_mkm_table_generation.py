@@ -16,14 +16,14 @@ This script demonstrates how to:
 def main():
 
     ## Select input parameters for specific energy tables generation
-    cell_type = "T"
+    cell_type = "HSG"
     atomic_numbers = [2, 6, 8] # He, C, O
     source = "mstar_3_12" # Source code used to generate stopping power tables (available with pymkm: fluka_2020_0, geant4_11_3_0 or mstar_3_12)
     model_name = "Kiefer-Chatterjee" # Amorphous track structure model (Kiefer-Chatterjee or Scholz-Kraft)
     core_type = "energy-dependent" # Core radius model ('constant' or 'energy-dependent')
     domain_radius = 0.32 # μm
     nucleus_radius = 3.9 # μm
-    alpha0 = 0.12 # 1/Gy
+    alpha0 = 0.172 # 1/Gy
     beta0 = 0.0615 # 1/Gy^2
 
     ## Load stopping power tables
@@ -47,8 +47,8 @@ def main():
     ## Plot specific energies result using built-in method
     mk_table.plot(ions=atomic_numbers, x="energy", y="z_bar_star_domain", verbose=True)
 
-    ## Write the MKTable to a .txt file
-    path = "./MKM_table.txt"
+    ## Write the MKTable to a .mkm file
+    path = "./MKM_table.mkm"
     params = {
         "CellType": cell_type,
         "Alpha_0": alpha0,

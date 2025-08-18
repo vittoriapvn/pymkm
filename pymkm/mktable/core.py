@@ -369,7 +369,7 @@ class MKTable:
         max_atomic_number: int
     ):
         """
-        Export results to a .txt file compatible with external tools.
+        Export results to a .mkm file compatible with external tools.
        
         Required `params` depend on the selected model:
     
@@ -489,8 +489,9 @@ class MKTable:
                 if Z > max_atomic_number:
                     continue
                 
+                symbol = self.table[ion_key]["stopping_power_info"].get("ion_symbol")
                 df = result["data"]
-                f.write(f"Fragment {ion_key}\n")
+                f.write(f"Fragment {symbol}\n")
     
                 if model == "classic":
                     if "z_bar_star_domain" not in df.columns:
