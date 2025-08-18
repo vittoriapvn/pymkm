@@ -142,8 +142,20 @@ class StoppingPowerTableSet:
     @classmethod
     def from_dict(cls, data: Dict[str, dict]) -> "StoppingPowerTableSet":
         """
-        Create a table set from a dictionary.
-        
+        Create a :class:`StoppingPowerTableSet` set from a dictionary. 
+
+        The input dictionary must map ion names to serialized 
+        stopping power tables. Each table dictionary must be a valid input for :meth:`StoppingPowerTable.from_dict`.
+        See :meth:`StoppingPowerTable.from_dict` for details on the expected format.
+
+        **Expected dictionary format**::
+
+            {
+                "Hydrogen": {},
+                "Helium": {},
+                ...
+            }
+
         :param data: Dictionary mapping ion names to serialized tables.
         :type data: dict[str, dict]
         
@@ -173,12 +185,16 @@ class StoppingPowerTableSet:
     @classmethod
     def from_json(cls, json_str: str) -> "StoppingPowerTableSet":
         """
-        Create a table set from a JSON string.
+        Create a :class:`StoppingPowerTableSet` from a JSON string.
+
+        The JSON must represent a dictionary mapping ion names to
+        serialized stopping power tables. Each table must follow the
+        format accepted by :meth:`StoppingPowerTable.from_dict`.
     
         :param json_str: JSON-formatted table set string.
         :type json_str: str
     
-        :returns: Deserialized StoppingPowerTableSet.
+        :returns: Deserialized :class:`StoppingPowerTableSet`.
         :rtype: StoppingPowerTableSet
         """        
         data = json.loads(json_str)
@@ -206,7 +222,10 @@ class StoppingPowerTableSet:
     @classmethod
     def from_directory(cls, directory: str) -> "StoppingPowerTableSet":
         """
-        Load all .txt stopping power tables from a directory.
+        Load :class:`StoppingPowerTable` instances from `.txt` files in a directory.
+
+        Each file must follow the format described in
+        :meth:`StoppingPowerTable.from_txt`.
     
         :param directory: Path to directory containing .txt files.
         :type directory: str
