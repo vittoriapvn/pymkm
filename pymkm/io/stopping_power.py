@@ -41,6 +41,9 @@ class StoppingPowerTable:
     Class for representing and handling stopping power (LET) data for ions in liquid water.
     
     Provides utilities for data validation, plotting, serialization, and interpolation.
+    :attr REQUIRED_HEADER_KEYS: Required header keys for parsing stopping power tables.
+    :attr REQUIRED_DICT_KEYS: Required dictionary keys for internal representation.
+    :attr DEFAULT_TARGET: Default target material (``WATER_LIQUID``).
     """
     
     REQUIRED_HEADER_KEYS = ["Ion", "AtomicNumber", "MassNumber", "SourceProgram", "IonizationPotential", "Target"]
@@ -189,7 +192,7 @@ class StoppingPowerTable:
         Create a :class:`StoppingPowerTable` instance from a serialized dictionary.
 
         The input dictionary must contain at least the required fields
-        listed in ``StoppingPowerTable.REQUIRED_DICT_KEYS``, also listed below.
+        listed in :attr:`StoppingPowerTable.REQUIRED_DICT_KEYS`, also listed below.
 
         **Expected dictionary format**::
 
@@ -303,8 +306,8 @@ class StoppingPowerTable:
         Create a :class:`StoppingPowerTable` from a .txt file containing header and data.
 
         The input file must contain a header with required fields and a data section
-        with energy and LET values. The header must include the Ion, AtomicNumber,
-        MassNumber, SourceProgram, IonizationPotential, and Target (case-sensitive) fields.
+        with energy and LET values. The header must include the ``Ion``, ``AtomicNumber``,
+        ``MassNumber``, ``SourceProgram``, ``IonizationPotential``, and ``Target`` (case-sensitive) fields.
 
         *Example header*::
            
