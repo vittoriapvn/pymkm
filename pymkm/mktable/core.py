@@ -369,7 +369,7 @@ class MKTable:
         max_atomic_number: int
     ):
         """
-        Export results to a .mkm file compatible with external tools.
+        Export results to a .txt file compatible with external tools.
        
         Required `params` depend on the selected model:
     
