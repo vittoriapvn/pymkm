@@ -186,14 +186,28 @@ class StoppingPowerTable:
     @staticmethod
     def from_dict(data: Dict) -> "StoppingPowerTable":
         """
-        Create a StoppingPowerTable instance from a dictionary.
-        
-        :param data: Dictionary containing all required fields.
+        Create a :class:`StoppingPowerTable` instance from a serialized dictionary.
+
+        The input dictionary must contain at least the required fields
+        listed in ``StoppingPowerTable.REQUIRED_DICT_KEYS``, also listed below.
+
+        **Expected dictionary format**::
+
+            {
+                "ion_symbol": H,                    # str, symbol of the ion
+                "energy": [...],                    # list/array of float, energy values (MeV/u)
+                "let": [...],                       # list/array of float, corresponding stopping powers (MeV/cm)
+                "mass_number": 1,                   # int, mass number of the ion
+                "source_program": fluka_2020_0      # str, program used to generate data
+                "ionization_potential": 75.0        # float, ionization potential (eV)
+            }
+
+        :param data: Dictionary containing serialized table data.
         :type data: dict
-        
-        :returns: StoppingPowerTable instance.
+
+        :returns: A new :class:`StoppingPowerTable` instance.
         :rtype: StoppingPowerTable
-        
+
         :raises ValueError: If required fields are missing.
         """
         missing = [key for key in StoppingPowerTable.REQUIRED_DICT_KEYS if key not in data]
@@ -286,12 +300,28 @@ class StoppingPowerTable:
     @staticmethod
     def from_txt(filepath: str) -> "StoppingPowerTable":
         """
-        Create a StoppingPowerTable from a .txt file containing header and data.
+        Create a :class:`StoppingPowerTable` from a .txt file containing header and data.
+
+        The input file must contain a header with required fields and a data section
+        with energy and LET values. The header must include the Ion, AtomicNumber,
+        MassNumber, SourceProgram, IonizationPotential, and Target (case-sensitive) fields.
+
+        *Example header*::
+           
+            SourceProgram=fluka_2020_0
+            Target=WATER_LIQUID
+            IonizationPotential=77.0
+            Ion=H
+            AtomicNumber=1
+            MassNumber=1
+
+        The data section should contain energy and LET values in two columns, expressed
+        in MeV/u and MeV/cm respectively.
         
         :param filepath: Path to the input .txt file.
         :type filepath: str
         
-        :returns: StoppingPowerTable instance parsed from file.
+        :returns: :class:`StoppingPowerTable` instance parsed from file.
         :rtype: StoppingPowerTable
         
         :raises ValueError: If required header keys or element definitions are missing or inconsistent.
