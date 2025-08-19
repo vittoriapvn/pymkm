@@ -275,6 +275,7 @@ def test_compute_for_ion_without_oxygen_effect(capsys):
     assert isinstance(result, list)
 
 def test__compute_for_ion_respects_number_of_workers(monkeypatch):
+    # This test verifies that the number_of_workers argument is correctly passed to the parallel executor in _compute_for_ion.
     called_workers = {} # Track the number of workers passed to FakeExecutor
 
     class FakeExecutor:
@@ -284,7 +285,7 @@ def test__compute_for_ion_respects_number_of_workers(monkeypatch):
         def __exit__(self, *args): pass
         def map(self, func, jobs): return [func(job) for job in jobs]
 
-    monkeypatch.setattr("pymkm.mktable.compute.ProcessPoolExecutor", lambda *a, **kw: FakeExecutor())
+    monkeypatch.setattr("pymkm.mktable.compute.ProcessPoolExecutor", lambda *a, **kw: FakeExecutor(*a, **kw))
     monkeypatch.setattr("pymkm.mktable.compute.tqdm", lambda *a, **kw: iter([]))
     monkeypatch.setattr("pymkm.utils.parallel.optimal_worker_count", lambda jobs: 1)
     monkeypatch.setattr("pymkm.physics.specific_energy.SpecificEnergy.single_event_specific_energy",
