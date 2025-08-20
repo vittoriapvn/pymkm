@@ -247,10 +247,8 @@ def test_compute_for_ion_with_oxygen_effect(capsys):
     table = MKTable(parameters=params)
     table.sp_table_set.add("C", create_dummy_table("C"))
 
-    # Chiama direttamente il metodo che include il ramo da coprire
     ion, result = table._compute_for_ion("C", parallel=False)
 
-    # Verifica che il blocco OSMK sia stato eseguito
     captured = capsys.readouterr()
     assert "✔ Using OSMK2023-corrected values:" in captured.out
     assert ion == "C"
@@ -264,7 +262,7 @@ def test_compute_for_ion_without_oxygen_effect(capsys):
         z0=1.0,
         beta0=0.05,
         use_stochastic_model=True,
-        apply_oxygen_effect=False  # 🔕 no oxygen effect
+        apply_oxygen_effect=False  # No oxygen effect
     )
     table = MKTable(parameters=params)
     table.sp_table_set.add("C", create_dummy_table("C"))
@@ -275,3 +273,37 @@ def test_compute_for_ion_without_oxygen_effect(capsys):
     assert "✔ Using OSMK2023-corrected values:" not in captured.out
     assert ion == "C"
     assert isinstance(result, list)
+
+def test__compute_for_ion_respects_number_of_workers(monkeypatch):
+    # This test verifies that the number_of_workers argument is correctly passed to the parallel executor in _compute_for_ion.
+    called_workers = {} # Track the number of workers passed to FakeExecutor
+
+    class FakeExecutor:
+        def __init__(self, *args, **kwargs):
+            called_workers['count'] = kwargs.get('max_workers', None)
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+        def map(self, func, jobs): return [func(job) for job in jobs]
+
+    monkeypatch.setattr("pymkm.mktable.compute.ProcessPoolExecutor", lambda *a, **kw: FakeExecutor(*a, **kw))
+    monkeypatch.setattr("pymkm.mktable.compute.tqdm", lambda *a, **kw: iter([]))
+    monkeypatch.setattr("pymkm.utils.parallel.optimal_worker_count", lambda jobs: 1)
+    monkeypatch.setattr("pymkm.physics.specific_energy.SpecificEnergy.single_event_specific_energy",
+                        lambda self, **kwargs: (np.ones(3), np.linspace(0, 1, 3)))
+    monkeypatch.setattr("pymkm.physics.specific_energy.SpecificEnergy.dose_averaged_specific_energy",
+                        lambda self, **kwargs: 0.5)
+    monkeypatch.setattr("pymkm.physics.specific_energy.SpecificEnergy.saturation_corrected_single_event_specific_energy",
+                        lambda self, z0, z_array: z_array)
+
+    params = MKTableParameters(domain_radius=0.3,
+                               nucleus_radius=5.0,
+                               beta0=0.05, 
+                               base_points_b=5, 
+                               base_points_r=5)
+    table = MKTable(parameters=params)
+    table.sp_table_set.add("C", create_dummy_table("C"))
+
+    table._compute_for_ion("C", parallel=True, number_of_workers=1)
+
+    assert called_workers['count'] == 1
+

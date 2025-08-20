@@ -137,7 +137,7 @@ def _get_osmk2023_corrected_parameters(mktable: MKTable) -> tuple[float, float]:
     z0_eff = round(p.z0 * f_z0, 2)
     return rd_eff, z0_eff
 
-def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, integration_method: str = "trapz"):
+def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, number_of_workers: int = None, integration_method: str = "trapz"):
     """
     Compute all specific energies for a given ion in the table set.
 
@@ -145,6 +145,8 @@ def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, integration
     :type ion: str
     :param parallel: Whether to use parallel processing.
     :type parallel: bool
+    :param number_of_workers: Optional user-defined number of workers.
+    :type number_of_workers: int or None
     :param integration_method: Numerical integration method ('trapz', 'simps', or 'quad').
     :type integration_method: str
 
@@ -172,7 +174,7 @@ def _compute_for_ion(self: MKTable, ion: str, parallel: bool = True, integration
         z0_eff = self.params.z0
 
     if parallel:
-        worker_count = optimal_worker_count(job_list)
+        worker_count = optimal_worker_count(job_list, user_requested=number_of_workers)
         with ProcessPoolExecutor(max_workers=worker_count) as executor:
             params_dict = {
                 "model_name": self.params.model_name,
@@ -220,6 +222,7 @@ def compute(
     ions: Optional[List[Union[str, int]]] = None,
     energy: Optional[Union[float, List[float], np.ndarray]] = None,
     parallel: bool = True,
+    number_of_workers: Optional[int] = None,
     integration_method: str = "trapz"
 ) -> None:
     """
@@ -239,6 +242,8 @@ def compute(
     :type energy: float or list or np.ndarray, optional
     :param parallel: Whether to enable multiprocessing.
     :type parallel: bool
+    :param number_of_workers: Optional user-defined number of workers.
+    :type number_of_workers: int or None
     :param integration_method: Integration scheme ('trapz', 'simps', 'quad').
     :type integration_method: str
 
@@ -272,7 +277,7 @@ def compute(
     results = {}
     for ion in ions:
         ion_key = self.sp_table_set._map_to_fullname(ion)
-        ion, ion_results = self._compute_for_ion(ion, parallel=parallel, integration_method=integration_method)
+        ion, ion_results = self._compute_for_ion(ion, parallel=parallel, integration_method=integration_method, number_of_workers=number_of_workers)
         results[ion_key] = ion_results
 
     enriched_results = {}
