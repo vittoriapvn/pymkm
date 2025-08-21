@@ -70,13 +70,20 @@ def get_available_sources() -> List[str]:
     try:
         from importlib.resources import files
         base = files("pymkm.data.defaults")
-        return [f.name for f in base.iterdir() if f.is_dir()]
+        candidates = base.iterdir()
     except Exception:
         spec = importlib.util.find_spec("pymkm.data.defaults")
         if spec and spec.origin:
             folder_path = Path(spec.origin).parent
-            return [f.name for f in folder_path.iterdir() if f.is_dir()]
-    raise FileNotFoundError("Could not locate default sources.")
+            candidates = folder_path.iterdir()
+        else:
+            raise FileNotFoundError("Could not locate default sources.")
+
+    return [
+        f.name
+        for f in candidates
+        if f.is_dir() and not f.name.startswith(("__", "."))
+    ]
 
 
 def list_available_defaults(source: str) -> List[str]:

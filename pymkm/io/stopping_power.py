@@ -31,10 +31,13 @@ import numpy as np
 import re
 import matplotlib.pyplot as plt
 from typing import Dict, Optional, Union
+import warnings
 
 from pymkm.io.data_registry import load_lookup_table
 from pymkm.utils.interpolation import Interpolator
 
+# Always show warnings
+warnings.simplefilter("always", UserWarning)
 
 class StoppingPowerTable:
     """
@@ -158,15 +161,47 @@ class StoppingPowerTable:
     def _validate(self):
         """
         Perform internal consistency checks on the input data.
-        
-        :raises ValueError: If shapes mismatch, insufficient points, or non-monotonic energy.
+    
+        Validates that:
+          - Energy and LET arrays have identical shape.
+          - At least a minimum number of points are provided 
+            (150 by default, unless source is 'mstar_3_12').
+          - Energy values are finite, non-NaN, strictly increasing,
+            and (ideally) within the validated energy range (0.1–1000 MeV/u).
+            Values outside this range trigger a strong visible warning.
+    
+        :raises ValueError: If shapes mismatch, insufficient points, non-finite values,
+                            or non-monotonic energy sequence.
+        :warns UserWarning: If energy values are outside the validated range.
         """
         if self.energy.shape != self.let.shape:
-            raise ValueError("Energy and LET arrays must have the same shape.")
-        if len(self.energy) < 150 and self.source_program != 'mstar_3_12':
-            raise ValueError("At least 150 data points are required.")
+            raise ValueError(
+                f"Shape mismatch: energy {self.energy.shape}, LET {self.let.shape}."
+            )
+    
+        if not np.isfinite(self.energy).all() or not np.isfinite(self.let).all():
+            raise ValueError("Energy and LET arrays must contain only finite values.")
+    
+        if len(self.energy) < 150 and self.source_program != "mstar_3_12":
+            raise ValueError(
+                f"Insufficient data points: got {len(self.energy)}, need at least 150."
+            )
+    
         if not np.all(np.diff(self.energy) > 0):
-            raise ValueError("Energy values must be strictly increasing.")
+            raise ValueError("Energy values must be strictly increasing with no duplicates.")
+    
+        # Energy range check (validated domain of the package)
+        if (self.energy.min() < 0.1) or (self.energy.max() > 1000):
+            msg = (
+                "\n\033[93m"  # bright yellow
+                + "═" * 72 + "\n"
+                + "⚠️  WARNING: Energy values outside validated range (0.1–1000 MeV/u)\n"
+                + f"    Found range: {self.energy.min():.3f} – {self.energy.max():.1f} MeV/u\n"
+                + "    Results may be unreliable outside this domain.\n"
+                + "═" * 72
+                + "\033[0m\n"  # reset
+            )
+            warnings.warn(msg, UserWarning, stacklevel=2)
 
     def to_dict(self) -> Dict:
         """

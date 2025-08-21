@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pymkm.io.stopping_power import StoppingPowerTable
-from pymkm.utils.interpolation import Interpolator
 
 def test_valid_construction_with_symbol():
     energy = np.linspace(0.1, 1000, 150)
@@ -211,3 +210,29 @@ def test_from_txt_raises_on_mismatch_atomic_mass(tmp_path):
     )
     with pytest.raises(ValueError, match="Mismatch in atomic or mass number for ion 'C'"):
         StoppingPowerTable.from_txt(str(file))
+
+def test_energy_out_of_validated_range_warns():
+    energy = np.linspace(0.01, 10, 150)  # min < 0.1
+    let = np.linspace(1.0, 2.0, 150)
+    with pytest.warns(UserWarning, match="outside validated range"):
+        StoppingPowerTable("C", energy, let)
+
+    energy = np.linspace(10, 2000, 150)  # max > 1000
+    let = np.linspace(1.0, 2.0, 150)
+    with pytest.warns(UserWarning, match="outside validated range"):
+        StoppingPowerTable("C", energy, let)
+        
+def test_non_finite_energy_or_let_raises():
+    # Caso con NaN in energy
+    energy = np.linspace(0.1, 1000, 150)
+    energy[10] = np.nan
+    let = np.linspace(1.0, 2.0, 150)
+    with pytest.raises(ValueError, match="finite values"):
+        StoppingPowerTable("C", energy, let)
+
+    # Caso con inf in LET
+    energy = np.linspace(0.1, 1000, 150)
+    let = np.linspace(1.0, 2.0, 150)
+    let[20] = np.inf
+    with pytest.raises(ValueError, match="finite values"):
+        StoppingPowerTable("C", energy, let)
