@@ -9,7 +9,6 @@ from pymkm.mktable.core import MKTableParameters, MKTable
 from pymkm.sftable.core import SFTableParameters, SFTable
 from pymkm.io.table_set import StoppingPowerTableSet
 from pymkm.utils.parallel import optimal_worker_count
-from validation_utils.inverse_dose import inverse_dose_from_survival
 
 """
 Example usage of MKTableParameters to compute specific energies (z_d*, z_d and z_n*) tables
@@ -70,7 +69,6 @@ def inverse_dose_from_survival(doses: np.ndarray, survivals: np.ndarray, S_targe
 def main():
 
     ## Select input parameters for specific energy tables generation
-    cell_type = "HSG"
     atomic_number = 6 # C
     source = "mstar_3_12" # Source code used to generate stopping power tables (available with pymkm: fluka_2020_0, geant4_11_3_0 or mstar_3_12)
     model_name = "Kiefer-Chatterjee" # Amorphous track structure model (Kiefer-Chatterjee or Scholz-Kraft)
@@ -158,7 +156,7 @@ def main():
     ax.set_ylim(1.0, max(OER) * 1.1)
     ax.set_xlabel("dose-averaged LET [MeV/cm]")
     ax.set_ylabel("OER (10% Survival)")
-    ax.set_grid(alpha=0.4)
+    ax.grid(alpha=0.4)
     plt.tight_layout()
     plt.show()
 
