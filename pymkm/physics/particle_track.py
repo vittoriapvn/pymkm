@@ -1,15 +1,15 @@
 """
 Radial dose models for charged particle tracks in water.
 
-This module defines the :class:`ParticleTrack`, which implements two analytical models:
+This module defines the :class:`ParticleTrack`, which implements two classes of analytical models:
 
-- Scholz-Kraft model (Adv. Space Res., 1996)
-- Kiefer-Chatterjee model (Radiat. Environ. Biophys., 1976 and Phys. Med. Biol., 1986)
+- A1) Scholz-Kraft model (Adv. Space Res., 1996)
+- A2) Elsaesser–Scholz model (New J. Phys., 2008)
+- A3) Friedrich model (Radiat. Environ. Biophys., 2013)
 
-For model descriptions and a comparative analysis, see:
-Elsässer et al., (New J. Phys., 2008)
+- B) Kiefer-Chatterjee model (Radiat. Environ. Biophys., 1976 and Phys. Med. Biol., 1986)
 
-Both models compute local dose as a function of radial distance from the ion trajectory,
+Both classes of models compute local dose as a function of radial distance from the ion trajectory,
 based on physical parameters such as energy, atomic number, LET, and core radius type.
 
 These dose profiles serve as the basis for computing specific energy deposition
@@ -20,8 +20,8 @@ Examples
 
 >>> from pymkm.physics.particle_track import ParticleTrack
 >>> track = ParticleTrack(model_name="Scholz-Kraft", energy=100)
->>> r, d = track.initial_local_dose()
->>> r.shape, d.shape
+>>> d, r = track.initial_local_dose()
+>>> d.shape, r.shape
 ((300,), (300,))
 >>> d[:3]
 array([val1, val2, val3])  # sample output
@@ -55,7 +55,7 @@ class ParticleTrack:
         """
         Initialize a ParticleTrack instance.
     
-        :param model_name: The dose model to use ('Scholz-Kraft' or 'Kiefer-Chatterjee').
+        :param model_name: The dose model to use ('Scholz-Kraft', 'Elsaesser–Scholz', 'Friedrich' or 'Kiefer-Chatterjee').
         :type model_name: str
         :param core_radius_type: Core radius mode, either 'constant' or 'energy-dependent'.
         :type core_radius_type: str
@@ -72,21 +72,28 @@ class ParticleTrack:
         """
         if core_radius_type not in ['constant', 'energy-dependent']:
             raise ValueError("Invalid core_radius_type. Choose 'constant' or 'energy-dependent'.")
-        if model_name not in ['Scholz-Kraft', 'Kiefer-Chatterjee']:
-            raise ValueError("Invalid model_name. Choose 'Scholz-Kraft' or 'Kiefer-Chatterjee'.")
+        
+        valid_models = ['Scholz-Kraft', 'Kiefer-Chatterjee', 'Elsaesser–Scholz', 'Friedrich']
+        if model_name not in valid_models:
+            raise ValueError(f"Invalid model_name. Choose one of: {valid_models}")
 
         if model_name == 'Kiefer-Chatterjee':
-            if core_radius_type == 'constant':
-                logger.warning("'Kiefer-Chatterjee' model is incompatible with 'constant' core radius type. Switching to 'energy-dependent'.")
+            if core_radius_type != 'energy-dependent':
+                logger.warning(
+                    "'Kiefer-Chatterjee' model supports only 'energy-dependent' core radius. "
+                    "Switching to 'energy-dependent'."
+                )
                 core_radius_type = 'energy-dependent'
             if atomic_number is None:
                 raise ValueError("Atomic number must be provided for the Kiefer-Chatterjee model.")
 
-        if model_name == 'Scholz-Kraft':
-            if core_radius_type == 'energy-dependent' and energy is None:
-                raise ValueError("Energy must be provided for energy-dependent core radius type in the Scholz-Kraft model.")
-            if core_radius_type == 'constant' and energy is not None:
-                logger.warning("Energy is ignored when core radius type is 'constant' in the Scholz-Kraft model.")
+        else:
+            if core_radius_type != 'constant':
+                logger.warning(
+                    f"'{model_name}' supports only 'constant' core radius. "
+                    "Switching to 'constant'."
+                )
+                core_radius_type = 'constant'
 
         self.model_name = model_name
         self.core_radius_type = core_radius_type
@@ -96,8 +103,8 @@ class ParticleTrack:
         self.base_points = base_points
 
         # Compute derived quantities
-        self.penumbra_radius = self._compute_penumbra_radius()
         self.velocity = self._compute_velocity()
+        self.penumbra_radius = self._compute_penumbra_radius()
         self.rho = 1e-12  # Density of water in g/μm³
 
     def _convert_let(self, let_mev_per_cm: float) -> float:
@@ -138,11 +145,18 @@ class ParticleTrack:
         :raises ValueError: If core_radius_type is invalid.
         """
         if self.core_radius_type == 'constant':
-            return 1.0e-2
+            if self.model_name == 'Scholz-Kraft':
+                return 1.0e-2
+            elif self.model_name == 'Elsaesser–Scholz':
+                return 3.0e-4
+            elif self.model_name == 'Friedrich':
+                return 6.5e-2
+            else:
+                return 1.0e-2
         elif self.core_radius_type == 'energy-dependent':
             Rc0 = 11.6e-3
             Rc = Rc0 * self.velocity
-            return max(Rc, 3.0e-4)
+            return Rc
         else:
             raise ValueError("Unsupported core radius type.")
 
@@ -193,11 +207,21 @@ class ParticleTrack:
         delta = 1.7
         if self.model_name == 'Scholz-Kraft':
             gamma = 0.05
+        elif self.model_name in ('Elsaesser–Scholz', 'Friedrich'):
+            gamma = 0.062
         elif self.model_name == 'Kiefer-Chatterjee':
             gamma = 0.0616
         else:
             raise ValueError("Invalid model name for penumbra radius computation.")
-        return gamma * (self.energy ** delta)
+        
+        Rp_energy = gamma * (self.energy ** delta)
+        
+        # if self.energy < 2.0:  # MeV/u
+        #     lower_bound = 2.0 * Rp_energy / self.energy # LEM rule
+        # else:
+        lower_bound = self._compute_core_radius()
+            
+        return max(Rp_energy, lower_bound)
 
     def _kiefer_chatterjee_dose(self, radius: np.ndarray) -> np.ndarray:
         """
@@ -211,6 +235,8 @@ class ParticleTrack:
     
         :raises ValueError: If core_radius_type is not 'energy-dependent'.
         """
+        if self.let is None:
+            raise ValueError("LET must be provided to compute the local dose profile.")
         if self.core_radius_type != 'energy-dependent':
             raise ValueError("Kiefer-Chatterjee model requires energy-dependent core radius.")
         core_radius = self._compute_core_radius()
@@ -235,6 +261,8 @@ class ParticleTrack:
         :returns: Dose values at each radius.
         :rtype: np.ndarray
         """
+        if self.let is None:
+            raise ValueError("LET must be provided to compute the local dose profile.")
         core_radius = self._compute_core_radius()
         lambda0 = self._compute_lambda0()
         LET = self.let
@@ -269,7 +297,7 @@ class ParticleTrack:
             raise ValueError("Radius values must be positive.")
         if self.model_name == 'Kiefer-Chatterjee':
             dose = self._kiefer_chatterjee_dose(radii)
-        elif self.model_name == 'Scholz-Kraft':
+        elif self.model_name in ('Scholz-Kraft', 'Elsaesser–Scholz', 'Friedrich'):
             dose = self._scholz_kraft_dose(radii)
         else:
             raise ValueError(f"Unknown model name: {self.model_name}")

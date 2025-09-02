@@ -85,7 +85,7 @@ class GeometryTools:
 
         N = GeometryTools.determine_sampling_points(energy, radius_max, base_points)
         return np.logspace(np.log10(radius_min), np.ceil(np.log10(radius_max)), N)
-
+    
     @staticmethod
     def calculate_intersection_area(r1: np.ndarray, r2: float, d: float) -> np.ndarray:
         """

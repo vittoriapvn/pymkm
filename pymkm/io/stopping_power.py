@@ -195,7 +195,7 @@ class StoppingPowerTable:
             msg = (
                 "\n\033[93m"  # bright yellow
                 + "═" * 72 + "\n"
-                + "⚠️  WARNING: Energy values outside validated range (0.1–1000 MeV/u)\n"
+                + f"⚠️  WARNING on {self.ion_name}: Energy values outside validated range (0.1–1000 MeV/u)\n"
                 + f"    Found range: {self.energy.min():.3f} – {self.energy.max():.1f} MeV/u\n"
                 + "    Results may be unreliable outside this domain.\n"
                 + "═" * 72

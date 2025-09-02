@@ -123,7 +123,7 @@ class SpecificEnergy:
                 radius_max=b_max,
                 base_points=base_points_b if base_points_b is not None else default_b_pts
             )
-
+            
         b_array = np.sort(np.asarray(impact_parameters).flatten())
         if parallel:
             workers = optimal_worker_count(b_array)
@@ -151,8 +151,8 @@ class SpecificEnergy:
         :return: Specific energy z₁(b) deposited in the region [Gy].
         :rtype: float
         """
-        r_min = max(1e-6, b - self.region_radius)
-        r_max = min(b + self.region_radius, self.penumbra_radius)
+        r_min = max(1e-6, b - self.region_radius)                               
+        r_max = min(b + self.region_radius, self.penumbra_radius)        
         default_r_pts = GeometryTools.generate_default_radii.__defaults__[1]
         r_array = GeometryTools.generate_default_radii(
             energy=self.track.energy,
@@ -160,8 +160,8 @@ class SpecificEnergy:
             radius_min=r_min,
             base_points=base_points_r if base_points_r is not None else default_r_pts
         )
-        dose_profile, _ = self.track.initial_local_dose(radius=r_array)
-        values = dose_profile.ravel()[:-1]
+        dose_profile, _ = self.track.initial_local_dose(radius=r_array)       
+        values = dose_profile.ravel()[:-1]       
         areas = GeometryTools.calculate_intersection_area(r_array, self.region_radius, b)
         diff_areas = np.diff(areas)
         z_b = np.sum(values * diff_areas)
